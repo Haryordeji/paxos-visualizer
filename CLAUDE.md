@@ -51,3 +51,12 @@ Full spec is in SPEC.md — read it before implementing anything.
 ## Build Order
 Follow SPEC.md Section 10 step by step. Do not skip ahead.
 Complete and test each step before starting the next.
+
+# Work Logging Rules
+- After completing any significant task, feature, or bug fix, update the `WORKLOG.md` file.
+- Add a new entry at the top with the current date, a description of what was done, and key files modified.
+- Keep the log concise.
+- The format is 
+[Date]
+[Entry #]
+[Structured description of work completed]
