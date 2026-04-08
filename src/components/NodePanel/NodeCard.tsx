@@ -1,51 +1,149 @@
+import { useEffect, useRef } from "react";
+import { motion, useAnimation } from "framer-motion";
 import { useSimulation } from "../../state/context.tsx";
-import type { ProposerState, AcceptorState, ProposalNumber, AcceptedProposal } from "../../engine/types.ts";
+import type {
+  NodeState,
+  ProposerState,
+  AcceptorState,
+  ProposalNumber,
+  AcceptedProposal,
+} from "../../engine/types.ts";
+
+// ─── Background colours used by Framer Motion ────────────────────────────────
+const BG = {
+  normal:    "rgba(28, 32, 56, 1)",
+  crashed:   "rgba(255, 107, 107, 0.12)",
+  consensus: "rgba(195, 232, 141, 0.07)",
+  flash:     "rgba(130, 170, 255, 0.22)",
+  restart:   "rgba(195, 232, 141, 0.25)",
+} as const;
+
+const SHADOW = {
+  none:      "0 0 0 0px rgba(195, 232, 141, 0)",
+  consensus: "0 0 0 1.5px rgba(195, 232, 141, 0.55), 0 0 18px 3px rgba(195, 232, 141, 0.18)",
+} as const;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatPN(pn: ProposalNumber | null): string {
-  if (!pn) return "—";
-  return `(${pn.round}, ${pn.nodeId})`;
+  return pn ? `(${pn.round}, ${pn.nodeId})` : "—";
 }
 
 function formatAccepted(ap: AcceptedProposal | null): string {
-  if (!ap) return "—";
-  return `${formatPN(ap.number)} = "${ap.value}"`;
+  return ap ? `${formatPN(ap.number)} = "${ap.value}"` : "—";
 }
 
-interface NodeCardProps {
-  nodeId: string;
+function restingBg(status: string, inConsensus: boolean): string {
+  if (inConsensus) return BG.consensus;
+  if (status === "crashed") return BG.crashed;
+  return BG.normal;
 }
+
+/** A stable string representing the parts of node state we care about animating. */
+function fingerprint(node: NodeState, inConsensus: boolean): string {
+  if (node.role === "proposer") {
+    const p = node as ProposerState;
+    return `${p.status}|${p.promisesReceived.length}|${p.acceptsReceived}|${inConsensus}`;
+  }
+  const a = node as AcceptorState;
+  const hp = a.highestPromised
+    ? `${a.highestPromised.round},${a.highestPromised.nodeId}`
+    : "null";
+  const ap = a.acceptedProposal
+    ? `${a.acceptedProposal.number.round},${a.acceptedProposal.number.nodeId},${a.acceptedProposal.value}`
+    : "null";
+  return `${a.status}|${hp}|${ap}|${inConsensus}`;
+}
+
+// ─── NodeCard ─────────────────────────────────────────────────────────────────
+
+interface NodeCardProps { nodeId: string }
 
 export function NodeCard({ nodeId }: NodeCardProps) {
   const { state, dispatch } = useSimulation();
-  const node = state.sim.nodes[nodeId];
+  const node        = state.sim.nodes[nodeId];
   const inConsensus = state.sim.consensus.acceptedBy.includes(nodeId);
+  const controls    = useAnimation();
 
+  const fp            = fingerprint(node, inConsensus);
+  const prevFpRef     = useRef<string>("");
+  const prevStatusRef = useRef<string>(node.status);
+  const prevConsRef   = useRef<boolean>(inConsensus);
+
+  useEffect(() => {
+    // Skip very first render — just record baseline
+    if (prevFpRef.current === "") {
+      prevFpRef.current     = fp;
+      prevStatusRef.current = node.status;
+      prevConsRef.current   = inConsensus;
+      return;
+    }
+    if (fp === prevFpRef.current) return;
+
+    const wasCrashed    = prevStatusRef.current === "crashed";
+    const isCrashed     = node.status === "crashed";
+    const justCrashed   = isCrashed && !wasCrashed;
+    const justRestarted = !isCrashed && wasCrashed;
+    const justConsensus = inConsensus && !prevConsRef.current;
+    const target        = restingBg(node.status, inConsensus);
+
+    if (justCrashed) {
+      void controls.start({
+        backgroundColor: BG.crashed,
+        x: [0, -7, 7, -5, 5, -2, 2, 0],
+        transition: { duration: 0.45, ease: "easeOut" },
+      });
+    } else if (justRestarted) {
+      void controls.start({
+        scale: [1, 1.04, 1],
+        backgroundColor: [BG.restart, target],
+        transition: { duration: 0.5, ease: "easeOut" },
+      });
+    } else if (justConsensus) {
+      void controls.start({
+        backgroundColor: BG.consensus,
+        boxShadow: SHADOW.consensus,
+        transition: { duration: 0.55 },
+      });
+    } else {
+      // Generic state change: flash then settle to current resting colour
+      void controls.start({
+        backgroundColor: [BG.flash, target],
+        boxShadow: inConsensus ? SHADOW.consensus : SHADOW.none,
+        transition: { duration: 0.45, times: [0, 1] },
+      });
+    }
+
+    prevFpRef.current     = fp;
+    prevStatusRef.current = node.status;
+    prevConsRef.current   = inConsensus;
+  }, [fp, node.status, inConsensus, controls]);
+
+  // CSS class drives border colour and layout only; Framer Motion owns background.
   const cardClass = [
     "node-card",
     node.status === "crashed" ? "crashed" : "",
     inConsensus ? "consensus" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const statusClass = `status-badge status-${node.status}`;
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={cardClass}>
+    <motion.div
+      className={cardClass}
+      animate={controls}
+      initial={{ backgroundColor: restingBg(node.status, inConsensus), boxShadow: inConsensus ? SHADOW.consensus : SHADOW.none }}
+    >
       <div className="node-card-header">
         <span>
           <span className="node-id">{nodeId}</span>
           <span className="node-role">{node.role}</span>
         </span>
-        <span className={statusClass}>{node.status}</span>
+        <span className={`status-badge status-${node.status}`}>{node.status}</span>
       </div>
 
       <div className="node-fields">
-        {node.role === "proposer" ? (
-          <ProposerFields node={node as ProposerState} />
-        ) : (
-          <AcceptorFields node={node as AcceptorState} />
-        )}
+        {node.role === "proposer"
+          ? <ProposerFields node={node as ProposerState} />
+          : <AcceptorFields node={node as AcceptorState} />}
       </div>
 
       {node.role === "proposer" && (
@@ -53,9 +151,11 @@ export function NodeCard({ nodeId }: NodeCardProps) {
           <StartProposalButton nodeId={nodeId} node={node as ProposerState} dispatch={dispatch} />
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
+
+// ─── Field sub-components ─────────────────────────────────────────────────────
 
 function ProposerFields({ node }: { node: ProposerState }) {
   return (
@@ -105,15 +205,14 @@ function StartProposalButton({
   dispatch: ReturnType<typeof useSimulation>["dispatch"];
 }) {
   const canStart = node.status === "idle" || node.status === "done";
+  const inFlight = node.status === "phase1" || node.status === "phase2";
   return (
     <button
       className="btn-start-proposal"
       disabled={!canStart}
       onClick={() => dispatch({ type: "START_PROPOSAL", proposerId: nodeId })}
     >
-      {node.status === "phase1" || node.status === "phase2"
-        ? "Proposing…"
-        : "Start Proposal"}
+      {inFlight ? "Proposing…" : "Start Proposal"}
     </button>
   );
 }

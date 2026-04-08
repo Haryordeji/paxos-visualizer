@@ -1,4 +1,19 @@
 **April 8**
+***Entry 7***
+
+Step 6: Framer Motion UI polish — NodeCard animations, ConsensusStatus banner, ProtocolExplainer.
+
+Files modified:
+- `src/components/NodePanel/NodeCard.tsx` — Framer Motion `motion.div` with `useAnimation()` controls; four animation branches: crash (shake + red tint), restart (scale pulse + green flash), consensus (green glow + box-shadow), generic state change (blue flash → resting). Uses `fingerprint()` string + prev-value refs to avoid spurious re-runs.
+- `src/components/InfoPanel/ConsensusStatus.tsx` — `AnimatePresence mode="wait"` with two states: dimmed "No consensus yet" and green glowing banner with pulsing dot; slides in from above on consensus reached.
+- `src/components/InfoPanel/ProtocolExplainer.tsx` — Concise spec-style descriptions (e.g., "A1 promised (1, P1) to P1 — no prior accepted value"); `AnimatePresence` keyed by message id for slide-in-from-right transition on each new step.
+- `src/index.css` — Removed `background` from `.node-card`, `.node-card.crashed`, `.node-card.consensus` (Framer Motion now owns background). Replaced `.consensus-status` with `.consensus-banner-wrap` / `.consensus-banner-reached` / `.consensus-banner-none` with inset shadow. Added `.explainer-text` for overflow-hidden slide animation.
+
+Verified: `tsc -b` clean, 65/65 tests pass.
+
+---
+
+**April 8**
 ***Entry 6***
 
 Step 5: D3 message arrow animation via `useD3Animation` hook.

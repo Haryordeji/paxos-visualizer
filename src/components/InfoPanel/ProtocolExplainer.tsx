@@ -1,36 +1,37 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { useSimulation } from "../../state/context.tsx";
 import type { Message } from "../../engine/types.ts";
 
-function formatPN(round: number, nodeId: string): string {
+function pn(round: number, nodeId: string): string {
   return `(${round}, ${nodeId})`;
 }
 
 function explain(msg: Message): string {
-  const pn = formatPN(msg.proposalNumber.round, msg.proposalNumber.nodeId);
-  const dropped = msg.status === "dropped";
+  const n = pn(msg.proposalNumber.round, msg.proposalNumber.nodeId);
 
-  if (dropped) {
-    return `Message from ${msg.from} to ${msg.to} was dropped and ignored.`;
+  if (msg.status === "dropped") {
+    return `${msg.from}→${msg.to} ${msg.type.toUpperCase()} ${n} was dropped`;
   }
 
   switch (msg.type) {
     case "prepare":
-      return `${msg.from} sent PREPARE ${pn} to ${msg.to}, asking it to promise not to accept lower proposals.`;
+      return `${msg.from} sent Prepare ${n} to ${msg.to} — asking it to promise not to accept lower proposals`;
 
     case "promise":
       if (msg.accepted) {
-        return `${msg.from} promised ${pn} to ${msg.to}, and reported a prior accepted value: "${msg.accepted.value}" at ${formatPN(msg.accepted.number.round, msg.accepted.number.nodeId)}.`;
+        const { round, nodeId } = msg.accepted.number;
+        return `${msg.from} promised ${n} to ${msg.to} — prior accepted: "${msg.accepted.value}" at ${pn(round, nodeId)}`;
       }
-      return `${msg.from} promised ${pn} to ${msg.to}. No prior accepted value.`;
+      return `${msg.from} promised ${n} to ${msg.to} — no prior accepted value`;
 
     case "accept":
-      return `${msg.from} sent ACCEPT ${pn} "${msg.value}" to ${msg.to} — requesting acceptance of this value.`;
+      return `${msg.from} sent Accept ${n} "${msg.value}" to ${msg.to} — requesting acceptance`;
 
     case "accepted":
-      return `${msg.from} accepted proposal ${pn} and committed value "${msg.value}". Notifying ${msg.to}.`;
+      return `${msg.from} accepted proposal ${n} "${msg.value}" — notifying ${msg.to}`;
 
     case "nack":
-      return `${msg.from} rejected ${pn} — it has already promised ${formatPN(msg.highestPromised.round, msg.highestPromised.nodeId)}. Notifying ${msg.to}.`;
+      return `${msg.from} rejected ${n} — already promised ${pn(msg.highestPromised.round, msg.highestPromised.nodeId)}`;
   }
 }
 
@@ -39,19 +40,29 @@ export function ProtocolExplainer() {
   const { deliveredMessages, consensus } = state.sim;
   const last = deliveredMessages[deliveredMessages.length - 1];
 
-  let text: string;
-  if (consensus.reached) {
-    text = `Consensus reached on value "${consensus.value}", accepted by ${consensus.acceptedBy.join(" and ")}.`;
-  } else if (last) {
-    text = explain(last);
-  } else {
-    text = 'Click "Start Proposal" on a proposer node to begin, then click Step to advance the simulation.';
-  }
+  const text = consensus.reached
+    ? `Consensus reached on "${consensus.value}", accepted by ${consensus.acceptedBy.join(", ")}.`
+    : last
+    ? explain(last)
+    : 'Click "Start Proposal" on a proposer, then Step to advance.';
+
+  const key = last ? last.id : "empty";
 
   return (
     <div className="protocol-explainer">
       <div className="explainer-title">Last step</div>
-      {text}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={key}
+          className="explainer-text"
+          initial={{ opacity: 0, x: 6 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -6 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
+          {text}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
