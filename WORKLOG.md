@@ -1,4 +1,30 @@
 **April 8**
+***Entry 6***
+
+Step 5: D3 message arrow animation via `useD3Animation` hook.
+
+Files created/modified:
+- `src/components/Canvas/layout.ts` — shared constants (`NODE_IDS`, `PAD_X`, `HEADER_H`, `STEP_H`, `LANE_COLOR`, `ROLE_LABEL`) and `laneX(nodeId, svgWidth)` used by both the lanes effect and the animation hook
+- `src/components/Canvas/useD3Animation.ts` — hook that watches `state.sim.deliveredMessages`; on each new message draws an animated arrow via `d3.transition()`; on RESET clears all arrows
+  - Arrowhead markers injected into `<defs>` once, idempotent
+  - `drawArrow()` has three branches: normal delivery (line grows, label fades in), manually dropped (halfway → ✗ marker → group fades), crashed-destination (full width → fades)
+  - Sliding scroll window: `updateScrollTransform()` shifts the scroll-group upward as steps exceed the visible area so the latest step always stays in view
+  - Animation duration = `max(150, speedMs * 0.55)` — responsive to speed slider
+- `src/components/Canvas/SimulationCanvas.tsx` — refactored to use two D3 layers: `.lanes-layer` (cleared on resize/node-change) and `.arrows-layer` (never cleared by lanes); calls `useD3Animation(svgRef, containerRef)`
+
+Arrow styling per spec:
+- PREPARE: blue `#82aaff`, solid 1.5px, label `P(n)`
+- PROMISE: green `#c3e88d`, solid 1.5px, label `PR(n)` or `PR(n) "v"`
+- ACCEPT: orange `#ff9f6b`, solid 1.5px, label `A(n) "v"`
+- ACCEPTED: dark-green `#4fd6be`, thick 2.5px, label `OK(n) "v"`
+- NACK: red `#ff6b6b`, dashed 5/3, label `✗(n)`
+- Dropped: gray `#4a5180`, dotted 3/3, struck-through label, ✗ at tip, fades to 18% opacity
+
+Verified: `tsc -b` clean, 65/65 tests pass, `npm run build` clean.
+
+---
+
+**April 8**
 ***Entry 5***
 
 Step 4 (canvas): Replaced React-rendered SVG children with proper D3 ownership in `SimulationCanvas`.

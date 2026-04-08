@@ -1,128 +1,148 @@
 import { useRef, useEffect } from "react";
 import * as d3 from "d3";
 import { useSimulation } from "../../state/context.tsx";
-
-// ─── Lane layout constants ───────────────────────────────────────────────────
-const NODE_IDS = ["P1", "P2", "A1", "A2", "A3"] as const;
-type NodeId = (typeof NODE_IDS)[number];
-
-const LANE_COLOR: Record<NodeId, string> = {
-  P1: "#82aaff", // blue   — proposer
-  P2: "#c099ff", // purple — proposer
-  A1: "#4fd6be", // teal   — acceptor
-  A2: "#4fd6be",
-  A3: "#4fd6be",
-};
-
-const ROLE_LABEL: Record<NodeId, string> = {
-  P1: "proposer", P2: "proposer",
-  A1: "acceptor", A2: "acceptor", A3: "acceptor",
-};
-
-const PAD_X    = 64;  // horizontal padding: outermost lane centre from edge
-const HEADER_H = 52;  // vertical space reserved for labels before the timeline
+import { useD3Animation } from "./useD3Animation.ts";
+import {
+  NODE_IDS, HEADER_H,
+  LANE_COLOR, ROLE_LABEL,
+  laneX,
+} from "./layout.ts";
+import type { NodeId } from "./layout.ts";
 
 // ─── Component ───────────────────────────────────────────────────────────────
+//
+// React renders only:  <div ref={containerRef}><svg ref={svgRef} /></div>
+//
+// D3 owns the entire SVG interior, split into two layers:
+//   .lanes-layer   — vertical timeline lanes, labels, crash overlays
+//                    Redrawn from scratch on resize or node status change.
+//   .arrows-layer  — message arrows, managed by useD3Animation.
+//                    Never cleared by the lanes effect.
 
-// React renders only the wrapper div and the bare <svg> element.
-// D3 owns every SVG child — nothing is rendered in JSX inside <svg>.
 export function SimulationCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef       = useRef<SVGSVGElement>(null);
   const { state }    = useSimulation();
 
+  // ── Lanes effect ───────────────────────────────────────────────────────────
+  // Redraws ONLY the .lanes-layer on container resize or node status change.
   useEffect(() => {
     const container = containerRef.current;
     const svgEl     = svgRef.current;
     if (!container || !svgEl) return;
 
+    const svg = d3.select<SVGSVGElement, unknown>(svgEl);
+
     function draw() {
       const { width, height } = container!.getBoundingClientRect();
       if (width === 0 || height === 0) return;
 
-      const svg = d3.select(svgEl!)
-        .attr("width",  width)
-        .attr("height", height);
+      // Size the SVG to the container
+      svg.attr("width", width).attr("height", height);
 
-      // D3 owns everything inside — clear on every redraw.
-      svg.selectAll("*").remove();
+      // Ensure the lanes layer exists (below the arrows layer)
+      let lanesLayer = svg.select<SVGGElement>(".lanes-layer");
+      if (lanesLayer.empty()) {
+        // Insert before .arrows-layer if it exists, else just append
+        const arrowsLayer = svg.select(".arrows-layer");
+        if (arrowsLayer.empty()) {
+          lanesLayer = svg.append("g").attr("class", "lanes-layer");
+        } else {
+          lanesLayer = svg.insert("g", ".arrows-layer").attr("class", "lanes-layer");
+        }
+      }
 
-      const laneCount = NODE_IDS.length;
+      // Clear only the lanes layer — arrows layer is untouched
+      lanesLayer.selectAll("*").remove();
 
-      // Compute the X position for each lane, evenly spaced.
-      const laneX = (i: number) =>
-        PAD_X + (i / (laneCount - 1)) * (width - 2 * PAD_X);
-
-      NODE_IDS.forEach((id, i) => {
-        const x       = laneX(i);
-        const color   = LANE_COLOR[id];
+      NODE_IDS.forEach((id) => {
+        const x       = laneX(id, width);
+        const color   = LANE_COLOR[id as NodeId];
         const crashed = state.sim.nodes[id]?.status === "crashed";
-        const lineColor = crashed ? "#ff6b6b" : color;
+        const lineClr = crashed ? "#ff6b6b" : color;
 
-        // ── crashed: semi-transparent red column behind the lane ────────────
+        // Crash overlay column
         if (crashed) {
-          svg.append("rect")
-            .attr("x",      x - 10)
+          lanesLayer.append("rect")
+            .attr("x",      x - 12)
             .attr("y",      HEADER_H)
-            .attr("width",  20)
+            .attr("width",  24)
             .attr("height", height - HEADER_H)
             .attr("fill",   "rgba(255,107,107,0.07)");
         }
 
-        // ── vertical timeline lane ───────────────────────────────────────────
-        svg.append("line")
+        // Dashed vertical lane line
+        lanesLayer.append("line")
           .attr("x1", x).attr("y1", HEADER_H)
           .attr("x2", x).attr("y2", height)
-          .attr("stroke",           lineColor)
-          .attr("stroke-opacity",   crashed ? 0.5 : 0.28)
-          .attr("stroke-width",     crashed ? 1.5 : 1)
+          .attr("stroke",           lineClr)
+          .attr("stroke-opacity",   crashed ? 0.55 : 0.28)
+          .attr("stroke-width",     crashed ? 1.5  : 1)
           .attr("stroke-dasharray", "5 5");
 
-        // ── label circle ────────────────────────────────────────────────────
-        svg.append("circle")
+        // Node-ID badge (circle)
+        lanesLayer.append("circle")
           .attr("cx", x).attr("cy", 22)
           .attr("r",  15)
           .attr("fill",         crashed
             ? "rgba(255,107,107,0.18)"
             : "rgba(20,23,40,0.92)")
-          .attr("stroke",       lineColor)
+          .attr("stroke",       lineClr)
           .attr("stroke-width", crashed ? 2 : 1.5);
 
-        // ── node-ID label ────────────────────────────────────────────────────
-        svg.append("text")
+        // Node-ID label
+        lanesLayer.append("text")
           .attr("x", x).attr("y", 27)
-          .attr("text-anchor",  "middle")
-          .attr("font-family",  "ui-monospace, 'Cascadia Code', Consolas, monospace")
-          .attr("font-size",    "11px")
-          .attr("font-weight",  "700")
-          .attr("fill",         lineColor)
+          .attr("text-anchor", "middle")
+          .attr("font-family", "ui-monospace, 'Cascadia Code', Consolas, monospace")
+          .attr("font-size",   "11px")
+          .attr("font-weight", "700")
+          .attr("fill",        lineClr)
           .text(id);
 
-        // ── role sub-label ───────────────────────────────────────────────────
-        svg.append("text")
-          .attr("x", x).attr("y", 42)
+        // Role sub-label
+        lanesLayer.append("text")
+          .attr("x", x).attr("y", 43)
           .attr("text-anchor", "middle")
           .attr("font-family", "ui-monospace, 'Cascadia Code', Consolas, monospace")
           .attr("font-size",   "9px")
-          .attr("fill",        crashed ? "#ff6b6b" : color)
-          .attr("opacity",     0.6)
-          .text(crashed ? "crashed" : ROLE_LABEL[id]);
+          .attr("fill",        lineClr)
+          .attr("opacity",     0.55)
+          .text(crashed ? "crashed" : ROLE_LABEL[id as NodeId]);
+
+        // Step tick marks along the lane (subtle horizontal notches)
+        // These give the "timeline" feel even when no arrows are drawn yet.
+        const tickCount = Math.floor((height - HEADER_H) / 40);
+        for (let t = 0; t < tickCount; t++) {
+          const ty = HEADER_H + (t + 1) * 40 - 20;
+          lanesLayer.append("line")
+            .attr("x1", x - 3).attr("y1", ty)
+            .attr("x2", x + 3).attr("y2", ty)
+            .attr("stroke",         lineClr)
+            .attr("stroke-opacity", 0.15)
+            .attr("stroke-width",   1);
+        }
       });
+
+      // Lane index labels for PAD_X reference (purely cosmetic: step counter)
+      // (nothing extra needed here)
     }
 
-    // Initial draw, then redraw on container resize.
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(container);
     return () => ro.disconnect();
 
-    // Re-run whenever node crash/active status changes so the overlay updates.
-  }, [state.sim.nodes]);
+  }, [state.sim.nodes]);   // redraw lanes when node status changes (crash/restart)
+
+  // ── Message animation (Step 5) ─────────────────────────────────────────────
+  useD3Animation(svgRef, containerRef);
 
   return (
     <div ref={containerRef} className="simulation-canvas">
-      {/* React renders no SVG children — D3 owns the entire SVG interior */}
+      {/* React owns only this empty shell — D3 populates the SVG interior */}
       <svg ref={svgRef} />
     </div>
   );
 }
+
