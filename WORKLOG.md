@@ -1,4 +1,19 @@
 **April 8**
+***Entry 5***
+
+Step 4 (canvas): Replaced React-rendered SVG children with proper D3 ownership in `SimulationCanvas`.
+
+- `src/components/Canvas/SimulationCanvas.tsx` — React renders only `<div ref={containerRef}><svg ref={svgRef} /></div>`; a `useEffect` selects the SVG via ref and uses D3 to draw all content
+- D3 draws: evenly-spaced vertical lane lines (dashed), circular label badges with node ID and role sub-label, red column overlay for crashed nodes
+- `ResizeObserver` on the container triggers a full `svg.selectAll("*").remove()` + redraw, keeping lanes correct on resize
+- Effect dependency on `state.sim.nodes` so the crash overlay updates immediately when a node is crashed/restarted
+- Removed `.canvas-placeholder` from CSS (D3 is now the content)
+
+Verified: `tsc -b` clean, `npm run build` clean, 65/65 tests pass.
+
+---
+
+**April 8**
 ***Entry 4***
 
 Step 4: React UI shell with useReducer state management. No animation yet.
