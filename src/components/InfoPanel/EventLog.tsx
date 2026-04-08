@@ -40,27 +40,44 @@ function DeliveredEntry({ msg }: { msg: Message }) {
   );
 }
 
-function QueuedEntry({ msg }: { msg: Message }) {
-  const cssClass = msg.status === "dropped" ? "msg-dropped" : `msg-${msg.type}`;
+function QueuedEntry({
+  msg,
+  onDrop,
+}: {
+  msg: Message;
+  onDrop: (id: string) => void;
+}) {
+  const alreadyDropped = msg.status === "dropped";
+  const cssClass = alreadyDropped ? "msg-dropped" : `msg-${msg.type}`;
+
   return (
-    <div className="queue-entry">
+    <div
+      className={`queue-entry ${alreadyDropped ? "" : "queue-entry-droppable"}`}
+      onClick={alreadyDropped ? undefined : () => onDrop(msg.id)}
+      title={alreadyDropped ? undefined : "Click to drop this message"}
+    >
       <span className="queue-dot" />
-      <span className={cssClass}>{msg.from} → {msg.to}: {messageLabel(msg)}</span>
-      {msg.status === "dropped" && (
-        <span style={{ fontSize: 10, color: "var(--red)", marginLeft: 4 }}>
-          [dropped]
-        </span>
+      <span className={cssClass}>
+        {msg.from} → {msg.to}: {messageLabel(msg)}
+      </span>
+      {alreadyDropped ? (
+        <span className="queue-dropped-tag">[dropped]</span>
+      ) : (
+        <span className="queue-drop-hint">✗</span>
       )}
     </div>
   );
 }
 
 export function EventLog() {
-  const { state } = useSimulation();
+  const { state, dispatch } = useSimulation();
   const { deliveredMessages, messageQueue } = state.sim;
 
-  // Show delivered in reverse (most recent at top)
   const delivered = [...deliveredMessages].reverse();
+
+  function handleDrop(messageId: string) {
+    dispatch({ type: "DROP_MESSAGE", messageId });
+  }
 
   return (
     <div className="event-log">
@@ -76,9 +93,12 @@ export function EventLog() {
 
       {messageQueue.length > 0 && (
         <div className="queue-section">
-          <div className="queue-title">Queued ({messageQueue.length})</div>
+          <div className="queue-title">
+            Queued ({messageQueue.length})
+            <span className="queue-title-hint"> — click to drop</span>
+          </div>
           {messageQueue.map((msg) => (
-            <QueuedEntry key={msg.id} msg={msg} />
+            <QueuedEntry key={msg.id} msg={msg} onDrop={handleDrop} />
           ))}
         </div>
       )}

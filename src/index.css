@@ -182,28 +182,68 @@ body {
   color: var(--text-h);
 }
 
-.node-card-actions {
-  margin-top: 2px;
+.node-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.btn-start-proposal {
-  width: 100%;
-  padding: 4px 8px;
+.crash-hint {
   font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+}
+
+.node-card:hover .crash-hint {
+  opacity: 0.7;
+}
+
+.node-card.crashed:hover .crash-hint {
+  color: var(--green);
+  opacity: 0.9;
+}
+
+.node-card-actions {
+  margin-top: 2px;
+  display: flex;
+  gap: 4px;
+}
+
+.btn-start-proposal,
+.btn-new-proposal {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 10px;
   font-family: inherit;
   font-weight: 500;
-  color: var(--bg);
-  background: var(--blue);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
-.btn-start-proposal:hover:not(:disabled) { opacity: 0.85; }
-.btn-start-proposal:disabled {
+.btn-start-proposal {
+  color: var(--bg);
+  background: var(--blue);
+}
+
+.btn-new-proposal {
+  color: var(--purple);
+  background: rgba(192, 153, 255, 0.15);
+  border: 1px solid rgba(192, 153, 255, 0.3);
+}
+
+.btn-start-proposal:hover:not(:disabled),
+.btn-new-proposal:hover:not(:disabled) { opacity: 0.8; }
+
+.btn-start-proposal:disabled,
+.btn-new-proposal:disabled {
   background: var(--surface-3);
   color: var(--text-dim);
+  border-color: transparent;
   cursor: not-allowed;
 }
 
@@ -350,6 +390,13 @@ body {
   padding: 4px 12px;
 }
 
+.queue-title-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
 .queue-entry {
   display: flex;
   align-items: center;
@@ -358,6 +405,36 @@ body {
   font-size: 11px;
   color: var(--text-dim);
   border-bottom: 1px solid rgba(42, 47, 82, 0.3);
+}
+
+.queue-entry-droppable {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.queue-entry-droppable:hover {
+  background: rgba(255, 107, 107, 0.07);
+  color: var(--text);
+}
+
+.queue-entry-droppable:hover .queue-drop-hint {
+  opacity: 1;
+}
+
+.queue-drop-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--red);
+  opacity: 0;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+
+.queue-dropped-tag {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--red);
+  flex-shrink: 0;
 }
 
 .queue-dot {

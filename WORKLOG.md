@@ -1,4 +1,28 @@
 **April 8**
+***Entry 8***
+
+Step 7: Interaction polish — click-to-crash, message dropping, auto-play hook, New Proposal button.
+
+Files created/modified:
+- `src/hooks/useAutoPlay.ts` — NEW: extracted `useAutoPlay()` hook from ControlBar; drives `setInterval` at `speedMs` while `autoPlay && canStep`; auto-stops (`TOGGLE_AUTOPLAY`) when queue drains
+- `src/components/NodePanel/NodeCard.tsx` — `motion.div` `onClick` toggles `CRASH_NODE`/`RESTART_NODE` (ignores clicks that land on `<button>`); `× / ↺` crash-hint icon fades in on hover; added `NewProposalButton` (purple, dispatches `NEW_PROPOSAL`) alongside `StartProposalButton` in the actions row
+- `src/components/InfoPanel/EventLog.tsx` — `QueuedEntry` is now clickable (dispatches `DROP_MESSAGE`) with red `✗` hint on hover; already-dropped entries are non-interactive; added `"— click to drop"` sub-label on queue section title
+- `src/components/ControlBar/ControlBar.tsx` — calls `useAutoPlay()`; removed inline setInterval logic; speed slider range fixed to 200–2000ms (spec §7)
+- `src/components/ControlBar/FaultControls.tsx` — replaced stubs with `null` (interactions moved to NodeCards and EventLog)
+- `src/index.css` — `.crash-hint` hover fade; `.node-card-actions` flex row for two buttons; `.btn-new-proposal` purple ghost button; `.queue-entry-droppable` hover highlight + opacity transition on `.queue-drop-hint`
+
+Verified: `tsc -b` clean, 65/65 tests pass.
+
+Competing proposals flow (§7.2) works end-to-end:
+1. Start P1 → 3 PREPAREs queued
+2. Step 3× → P1 in phase2
+3. Click "New Proposal" on P2 → P2 introduces higher-round PREPAREs
+4. Step → acceptors promise P2's round; P1's ACCEPTs get NACKed
+5. P2 reaches consensus on "B"
+
+---
+
+**April 8**
 ***Entry 7***
 
 Step 6: Framer Motion UI polish — NodeCard animations, ConsensusStatus banner, ProtocolExplainer.

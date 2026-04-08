@@ -71,7 +71,6 @@ export function NodeCard({ nodeId }: NodeCardProps) {
   const prevConsRef   = useRef<boolean>(inConsensus);
 
   useEffect(() => {
-    // Skip very first render — just record baseline
     if (prevFpRef.current === "") {
       prevFpRef.current     = fp;
       prevStatusRef.current = node.status;
@@ -106,7 +105,6 @@ export function NodeCard({ nodeId }: NodeCardProps) {
         transition: { duration: 0.55 },
       });
     } else {
-      // Generic state change: flash then settle to current resting colour
       void controls.start({
         backgroundColor: [BG.flash, target],
         boxShadow: inConsensus ? SHADOW.consensus : SHADOW.none,
@@ -119,7 +117,16 @@ export function NodeCard({ nodeId }: NodeCardProps) {
     prevConsRef.current   = inConsensus;
   }, [fp, node.status, inConsensus, controls]);
 
-  // CSS class drives border colour and layout only; Framer Motion owns background.
+  function handleCardClick(e: React.MouseEvent) {
+    // Let button clicks pass through — only respond to card-level clicks
+    if ((e.target as HTMLElement).closest("button")) return;
+    if (node.status === "crashed") {
+      dispatch({ type: "RESTART_NODE", nodeId });
+    } else {
+      dispatch({ type: "CRASH_NODE", nodeId });
+    }
+  }
+
   const cardClass = [
     "node-card",
     node.status === "crashed" ? "crashed" : "",
@@ -131,13 +138,21 @@ export function NodeCard({ nodeId }: NodeCardProps) {
       className={cardClass}
       animate={controls}
       initial={{ backgroundColor: restingBg(node.status, inConsensus), boxShadow: inConsensus ? SHADOW.consensus : SHADOW.none }}
+      onClick={handleCardClick}
+      title={node.status === "crashed" ? "Click to restart" : "Click to crash"}
+      style={{ cursor: "pointer" }}
     >
       <div className="node-card-header">
         <span>
           <span className="node-id">{nodeId}</span>
           <span className="node-role">{node.role}</span>
         </span>
-        <span className={`status-badge status-${node.status}`}>{node.status}</span>
+        <span className="node-card-header-right">
+          <span className={`status-badge status-${node.status}`}>{node.status}</span>
+          <span className="crash-hint">
+            {node.status === "crashed" ? "↺" : "×"}
+          </span>
+        </span>
       </div>
 
       <div className="node-fields">
@@ -149,6 +164,7 @@ export function NodeCard({ nodeId }: NodeCardProps) {
       {node.role === "proposer" && (
         <div className="node-card-actions">
           <StartProposalButton nodeId={nodeId} node={node as ProposerState} dispatch={dispatch} />
+          <NewProposalButton   nodeId={nodeId} node={node as ProposerState} dispatch={dispatch} />
         </div>
       )}
     </motion.div>
@@ -213,6 +229,28 @@ function StartProposalButton({
       onClick={() => dispatch({ type: "START_PROPOSAL", proposerId: nodeId })}
     >
       {inFlight ? "Proposing…" : "Start Proposal"}
+    </button>
+  );
+}
+
+function NewProposalButton({
+  nodeId,
+  node,
+  dispatch,
+}: {
+  nodeId: string;
+  node: ProposerState;
+  dispatch: ReturnType<typeof useSimulation>["dispatch"];
+}) {
+  const disabled = node.status === "crashed";
+  return (
+    <button
+      className="btn-new-proposal"
+      disabled={disabled}
+      onClick={() => dispatch({ type: "NEW_PROPOSAL", proposerId: nodeId })}
+      title="Introduce a competing proposal with a higher round number"
+    >
+      New Proposal
     </button>
   );
 }

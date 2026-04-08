@@ -1,17 +1,5 @@
-// Step 7: click-to-crash, drop-next, new-proposal controls
-// Placeholder for now — wired up in Step 7.
+// FaultControls placeholder — fault interactions moved to NodeCards and EventLog in Step 7.
+// This file is kept for potential future controls (e.g. preset scenarios).
 export function FaultControls() {
-  return (
-    <>
-      <button className="btn btn-secondary" disabled title="Coming in Step 7">
-        Crash Node
-      </button>
-      <button className="btn btn-secondary" disabled title="Coming in Step 7">
-        Drop Next
-      </button>
-      <button className="btn btn-secondary" disabled title="Coming in Step 7">
-        New Proposal
-      </button>
-    </>
-  );
+  return null;
 }
