@@ -1,4 +1,26 @@
 **April 7**
+***Entry 3***
+
+src/engine/faults.ts
+
+- `dropMessage(state, id)` — sets status: `"dropped"` on the target queued message; `step()` then skips delivery  
+- `crashNode(state, nodeId)` — sets status: `"crashed"`, preserves all other fields (stable storage intact)  
+- `restartNode(state, nodeId)` — acceptors → `"active"`; proposers → `"idle"` with `currentProposal`, `promisesReceived`, `acceptsReceived` cleared (round counter kept)  
+- `introduceProposal(state, proposerId, value)` — scans all nodes and queued messages to find `maxRound`, sets new proposal to `maxRound + 1`, enqueues 3 PREPAREs  
+
+faults.test.ts (32 tests across 7 suites)
+
+| Suite                              | Key assertion                                                                 |
+|-----------------------------------|------------------------------------------------------------------------------|
+| `dropMessage`                     | message marked dropped, `step` skips it without updating acceptor state      |
+| `crashNode`                       | stable storage survives; messages to crashed node are silently dropped       |
+| `restartNode`                     | acceptor resumes active; proposer clears in-progress tracking, keeps round   |
+| **Crash recovery**                | consensus on A1+A2 with A3 crashed; A3's state stays null                    |
+| **Message drop**                  | 2 of 3 dropped → P1 stuck in phase1, no consensus; 1 of 3 dropped → consensus still reached |
+| **Competing proposals**           | P2's PREPAREs update `highestPromised` before P1's ACCEPTs arrive → NACKs to P1; P2 wins on `"B"` |
+| **Value selection via `introduceProposal`** | P2 adopts prior accepted `"X"` not own `"B"`; picks highest when promises carry different values |
+
+**April 7**
 ***Entry 2***
 
 Files created:                                                                      
