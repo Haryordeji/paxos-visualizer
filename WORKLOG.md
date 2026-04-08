@@ -1,3 +1,27 @@
+**April 8**
+***Entry 4***
+
+Step 4: React UI shell with useReducer state management. No animation yet.
+
+Files created:
+- `src/state/reducer.ts` — `AppState`, all 9 `Action` types, `reducer()` delegating to pure engine functions
+- `src/state/context.tsx` — `SimProvider` / `useSimulation()` context hook
+- `src/components/App.tsx` — root component, wraps tree in `SimProvider`
+- `src/components/Header.tsx` — title + live step counter badge
+- `src/components/NodePanel/NodePanel.tsx` + `NodeCard.tsx` — displays full internal node state; "Start Proposal" button on proposers (enabled when idle/done); crashed/consensus CSS classes
+- `src/components/Canvas/SimulationCanvas.tsx` — SVG placeholder with static lane lines; `svgRef` ready for D3 in Step 5
+- `src/components/InfoPanel/{InfoPanel, ConsensusStatus, EventLog, ProtocolExplainer}.tsx` — consensus banner, scrollable message log (delivered + queued), per-step human-readable explanation
+- `src/components/ControlBar/{ControlBar, FaultControls}.tsx` — Step, Auto-play (setInterval), Speed slider, Reset; fault controls stubbed for Step 7
+
+Config:
+- Extracted `vitest.config.ts` separate from `vite.config.ts` to resolve Vite 8/vitest rolldown vs rollup type conflict
+- Rewrote `src/index.css` with dark monospace theme and CSS Grid layout (header / main 3-col / controlbar)
+- Updated `src/main.tsx` to import `App` from `components/App.tsx`
+
+Verified: `tsc -b` clean, 65/65 tests pass, `npm run build` succeeds.
+
+---
+
 **April 7**
 ***Entry 3***
 
