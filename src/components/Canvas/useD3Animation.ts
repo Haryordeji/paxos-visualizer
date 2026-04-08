@@ -51,7 +51,6 @@ function ensureArrowsLayer(
   let defs = svg.select<SVGDefsElement>("defs");
   if (defs.empty()) defs = svg.insert("defs", ":first-child");
 
-  // Clip path: show only the area below the header labels
   if (defs.select("#timeline-clip").empty()) {
     defs.append("clipPath")
       .attr("id", "timeline-clip")
@@ -63,7 +62,6 @@ function ensureArrowsLayer(
     defs.select("#timeline-clip .clip-rect").attr("height", svgHeight);
   }
 
-  // Arrows layer (on top of lanes layer)
   if (svg.select(".arrows-layer").empty()) {
     svg.append("g")
       .attr("class", "arrows-layer")
@@ -104,6 +102,12 @@ function arrowLabel(msg: Message): string {
 
 // ─── Core drawing function ────────────────────────────────────────────────────
 
+/**
+ * Draw one arrow into the scroll group.
+ *
+ * @param animDuration  Animation duration in ms. Pass 0 for instant rendering
+ *                      (used when preset pre-steps are batch-drawn on load).
+ */
 function drawArrow(
   scrollGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
   msg: Message,
@@ -115,39 +119,35 @@ function drawArrow(
   const fromX = laneX(msg.from, svgWidth);
   const toX   = laneX(msg.to,   svgWidth);
   const midX  = (fromX + toX) / 2;
-
-  // Y in the scroll-group's local coordinates (origin = top of timeline area)
-  const y = (msgIndex + 0.5) * STEP_H;
+  const y     = (msgIndex + 0.5) * STEP_H;
 
   const isDropped = msg.status === "dropped";
   const style     = arrowStyle(msg);
   const label     = arrowLabel(msg);
+  const instant   = animDuration === 0;
 
-  // Container group for this arrow
   const g = scrollGroup.append("g")
     .attr("class", "arrow-group")
     .attr("data-step", msgIndex)
     .attr("opacity", 1);
 
-  // ── Main line (starts at fromX, animates to destination) ─────────────────
   const line = g.append("line")
     .attr("x1", fromX).attr("y1", y)
-    .attr("x2", fromX).attr("y2", y)        // x2 will be animated
-    .attr("stroke",           style.color)
-    .attr("stroke-width",     style.strokeWidth)
-    .attr("stroke-linecap",   "round")
-    .attr("marker-end",       `url(#${markerId(msg)})`);
+    .attr("x2", fromX).attr("y2", y)
+    .attr("stroke",         style.color)
+    .attr("stroke-width",   style.strokeWidth)
+    .attr("stroke-linecap", "round")
+    .attr("marker-end",     `url(#${markerId(msg)})`);
 
   if (style.dasharray) line.attr("stroke-dasharray", style.dasharray);
 
-  // ── Label text (fades in after the line reaches its destination) ──────────
-  const labelX   = isDropped ? midX : midX;
-  const labelY   = y - 7;
+  const labelX    = midX;
+  const labelY    = y - 7;
   const textColor = isDropped ? "#4a5180" : style.color;
 
   const text = g.append("text")
     .attr("x", labelX).attr("y", labelY)
-    .attr("text-anchor", "middle")
+    .attr("text-anchor",  "middle")
     .attr("font-family",  "ui-monospace, 'Cascadia Code', Consolas, monospace")
     .attr("font-size",    "9px")
     .attr("fill",         textColor)
@@ -156,38 +156,45 @@ function drawArrow(
 
   if (isDropped) text.attr("text-decoration", "line-through");
 
-  // ── Branch: dropped ───────────────────────────────────────────────────────
+  // ── Instant rendering (preset batch-draw) ────────────────────────────────
+  if (instant) {
+    if (isDropped) {
+      line.attr("x2", midX);
+      g.append("text")
+        .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
+        .attr("text-anchor", "middle").attr("font-size", "13px")
+        .attr("fill", "#ff6b6b").attr("opacity", 1);
+      text.attr("opacity", 0.6);
+      g.attr("opacity", 0.18);
+    } else if (isCrashedDest) {
+      line.attr("x2", toX);
+      text.attr("opacity", 0.5);
+      g.attr("opacity", 0.15);
+    } else {
+      line.attr("x2", toX);
+      text.attr("opacity", 1);
+    }
+    return;
+  }
+
+  // ── Animated rendering ────────────────────────────────────────────────────
   if (isDropped) {
-    // Animate to midpoint, then ✗ marker appears, then group fades
     line.transition()
       .duration(animDuration * 0.65)
       .ease(d3.easeLinear)
       .attr("x2", midX)
       .on("end", () => {
-        // ✗ symbol at the tip
         g.append("text")
-          .attr("x", midX + (toX >= fromX ? 10 : -10))
-          .attr("y", y + 4)
-          .attr("text-anchor", "middle")
-          .attr("font-size",   "13px")
-          .attr("fill",        "#ff6b6b")
-          .attr("opacity",     0)
-          .transition().duration(120)
-          .attr("opacity", 1);
-
-        // Label briefly visible
+          .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
+          .attr("text-anchor", "middle").attr("font-size", "13px")
+          .attr("fill", "#ff6b6b").attr("opacity", 0)
+          .transition().duration(120).attr("opacity", 1);
         text.transition().duration(100).attr("opacity", 0.6);
-
-        // Whole group fades to near-invisible
-        g.transition()
-          .delay(350)
-          .duration(500)
-          .attr("opacity", 0.18);
+        g.transition().delay(350).duration(500).attr("opacity", 0.18);
       });
     return;
   }
 
-  // ── Branch: crashed destination (animate full width then fade) ────────────
   if (isCrashedDest) {
     line.transition()
       .duration(animDuration)
@@ -195,15 +202,11 @@ function drawArrow(
       .attr("x2", toX)
       .on("end", () => {
         text.transition().duration(100).attr("opacity", 0.5);
-        g.transition()
-          .delay(250)
-          .duration(400)
-          .attr("opacity", 0.15);
+        g.transition().delay(250).duration(400).attr("opacity", 0.15);
       });
     return;
   }
 
-  // ── Branch: normal delivery ───────────────────────────────────────────────
   line.transition()
     .duration(animDuration)
     .ease(d3.easeLinear)
@@ -235,8 +238,9 @@ export function useD3Animation(
   svgRef:       RefObject<SVGSVGElement | null>,
   containerRef: RefObject<HTMLDivElement | null>
 ): void {
-  const { state }    = useSimulation();
-  const prevLenRef   = useRef(0);
+  const { state } = useSimulation();
+  const prevLenRef      = useRef(0);
+  const prevResetKeyRef = useRef(state.resetKey);
 
   useEffect(() => {
     const svgEl = svgRef.current;
@@ -244,12 +248,10 @@ export function useD3Animation(
     if (!svgEl || !cont) return;
 
     const svg = d3.select<SVGSVGElement, unknown>(svgEl);
-
     const svgWidth  = parseFloat(svg.attr("width")  || "0");
     const svgHeight = parseFloat(svg.attr("height") || "0");
     if (svgWidth === 0 || svgHeight === 0) return;
 
-    // Ensure structural elements exist (idempotent)
     ensureMarkers(svg);
     ensureArrowsLayer(svg, svgHeight);
 
@@ -257,37 +259,34 @@ export function useD3Animation(
     const { deliveredMessages, nodes } = state.sim;
     const animDuration = Math.max(150, state.speedMs * 0.55);
 
-    // ── RESET: deliveredMessages was cleared ──────────────────────────────
-    if (deliveredMessages.length === 0 && prevLenRef.current > 0) {
+    // ── Detect RESET or LOAD_PRESET (resetKey changed) ────────────────────
+    if (state.resetKey !== prevResetKeyRef.current) {
       scrollGroup.selectAll("*").remove();
       scrollGroup.attr("transform", null);
-      prevLenRef.current = 0;
-      return;
+      prevLenRef.current      = 0;
+      prevResetKeyRef.current = state.resetKey;
+      // Fall through to draw any pre-loaded messages below
     }
 
-    // ── No new message this tick ──────────────────────────────────────────
-    if (deliveredMessages.length === prevLenRef.current) return;
+    // ── Nothing new to draw ───────────────────────────────────────────────
+    const newCount = deliveredMessages.length - prevLenRef.current;
+    if (newCount <= 0) return;
 
-    // ── Draw the new arrow ────────────────────────────────────────────────
-    const msgIndex = deliveredMessages.length - 1;
-    const msg      = deliveredMessages[msgIndex];
+    // ── Draw all new arrows ───────────────────────────────────────────────
+    // When multiple arrive at once (preset batch), render them instantly;
+    // when exactly one arrives (normal step), animate it.
+    for (let i = 0; i < newCount; i++) {
+      const msgIndex = prevLenRef.current + i;
+      const msg      = deliveredMessages[msgIndex];
+      const isCrashedDest =
+        msg.status === "dropped" &&
+        nodes[msg.to]?.status === "crashed";
+      const dur = newCount === 1 ? animDuration : 0;
+      drawArrow(scrollGroup, msg, msgIndex, svgWidth, isCrashedDest, dur);
+    }
 
-    // A "crashed destination" is when the node is currently crashed but
-    // the message was not manually dropped (engine marked it dropped).
-    // We can distinguish: manual drop ⟹ node is active (user dropped a queued msg);
-    // crashed drop ⟹ the destination node is (still) crashed.
-    const isCrashedDest =
-      msg.status === "dropped" &&
-      nodes[msg.to]?.status === "crashed";
-
-    drawArrow(scrollGroup, msg, msgIndex, svgWidth, isCrashedDest, animDuration);
-
-    // Adjust viewport so the latest step is always visible
     updateScrollTransform(scrollGroup, deliveredMessages.length, svgHeight);
-
     prevLenRef.current = deliveredMessages.length;
 
-  // Include nodes so isCrashedDest uses current crash state when a new message
-  // is delivered. The length-guard prevents redrawing on node-only changes.
-  }, [state.sim.deliveredMessages, state.sim.nodes, state.speedMs, svgRef, containerRef]);
+  }, [state.sim.deliveredMessages, state.sim.nodes, state.speedMs, state.resetKey, svgRef, containerRef]);
 }

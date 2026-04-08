@@ -1,5 +1,6 @@
 import { useSimulation } from "../../state/context.tsx";
 import { useAutoPlay } from "../../hooks/useAutoPlay.ts";
+import { PresetControls } from "./PresetControls.tsx";
 
 export function ControlBar() {
   const { state, dispatch } = useSimulation();
@@ -10,11 +11,12 @@ export function ControlBar() {
   const canStep = sim.messageQueue.length > 0;
 
   // Slider: left = slow (2000ms), right = fast (200ms)
-  // sliderValue = 2200 - speedMs → speedMs = 2200 - sliderValue
+  // sliderValue = 2200 - speedMs  ⟹  speedMs = 2200 - sliderValue
   const sliderValue = 2200 - speedMs;
 
   return (
     <footer className="control-bar">
+      {/* Row 1: simulation controls */}
       <div className="control-row">
         <button
           className="btn btn-primary"
@@ -61,6 +63,11 @@ export function ControlBar() {
         <span className="fault-label">
           Click node to crash/restart · Click queued message to drop
         </span>
+      </div>
+
+      {/* Row 2: preset scenarios */}
+      <div className="control-row">
+        <PresetControls />
       </div>
     </footer>
   );

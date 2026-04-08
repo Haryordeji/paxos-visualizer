@@ -302,6 +302,18 @@ body {
   box-shadow: inset 0 0 0 1px rgba(195, 232, 141, 0.18);
 }
 
+.consensus-banner-impossible {
+  color: var(--orange);
+  background: rgba(255, 159, 107, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 159, 107, 0.2);
+  gap: 8px;
+}
+
+.consensus-impossible-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
 .consensus-dot {
   width: 7px;
   height: 7px;
@@ -482,8 +494,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 16px;
 }
 
 .control-row {
@@ -564,6 +576,34 @@ body {
   font-size: 11px;
   color: var(--text-dim);
   margin-left: 4px;
+}
+
+/* preset controls */
+.preset-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.preset-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.btn-preset {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--border);
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.btn-preset:hover {
+  background: rgba(130, 170, 255, 0.12);
+  border-color: rgba(130, 170, 255, 0.35);
+  color: var(--blue);
 }
 
 /* scrollbar */

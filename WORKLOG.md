@@ -1,4 +1,28 @@
 **April 8**
+***Entry 9***
+
+Step 8: Preset scenarios, invariant assertions, edge-case handling.
+
+Files created/modified:
+- `src/engine/invariants.ts` — NEW: `checkInvariants(sim)` checks 3 stateless runtime invariants in dev mode: (1) consensus value is a proposed value, (2) consensus.acceptedBy nodes all agree on the consensus value with ≥2 acceptors, (3) ACCEPT message values are proposed values (weak P2b sanity check), (5) each acceptor's acceptedProposal.number ≥ highestPromised. Uses `console.error` in browser; throws in test mode. Invariants 3(full) and 4 are covered by engine unit tests.
+- `src/state/reducer.ts` — Added `resetKey: number` to `AppState` (incremented on RESET and LOAD_PRESET); added `LOAD_PRESET` action; `buildPreset()` factory computes each scenario state synchronously by calling engine functions directly; `checkInvariants` called after every STEP.
+- `src/components/Canvas/useD3Animation.ts` — Watches `state.resetKey` to detect RESET/LOAD_PRESET and clear the SVG; loops over all `newCount` new messages per render; batch messages (newCount > 1, preset load) drawn instantly (animDuration=0); single new message animated normally. `drawArrow` refactored with `instant` path that sets final attribute state without transitions.
+- `src/components/ControlBar/PresetControls.tsx` — NEW: 4 preset buttons ("Happy Path", "Competing Proposals", "Crash Recovery", "Message Loss") each dispatch `LOAD_PRESET`; tooltip explains each scenario.
+- `src/components/ControlBar/ControlBar.tsx` — Added second control row for `<PresetControls />`.
+- `src/components/InfoPanel/ConsensusStatus.tsx` — Added `impossible` state (≥2 of 3 acceptors crashed); shows orange warning banner "Consensus impossible — no majority available" via `AnimatePresence`.
+- `src/index.css` — `.consensus-banner-impossible` orange variant; `.preset-controls` / `.btn-preset` styles.
+
+Preset scenarios:
+- Happy Path: START_PROPOSAL("P1") + autoPlay = true
+- Competing Proposals: START_PROPOSAL("P1") + 3 steps + INTRODUCE("P2") + autoPlay = true
+- Crash Recovery: START_PROPOSAL("P1") + 5 steps + CRASH("A3") + autoPlay = true
+- Message Loss: START_PROPOSAL("P1") + drop 2 PREPAREs + autoPlay = false
+
+Verified: `tsc -b` clean, 65/65 tests pass.
+
+---
+
+**April 8**
 ***Entry 8***
 
 Step 7: Interaction polish — click-to-crash, message dropping, auto-play hook, New Proposal button.
