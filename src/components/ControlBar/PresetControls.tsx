@@ -21,13 +21,13 @@ const PRESETS: { name: PresetName; label: string; title: string }[] = [
       "P1 reaches phase2 with a majority (A1+A2). A3 is crashed. " +
       "Consensus is still reached — majority does not require all acceptors.",
   },
-  {
-    name:  "message-loss",
-    label: "Message Loss",
-    title:
-      "2 of P1's 3 PREPAREs are pre-dropped. P1 only receives 1 PROMISE " +
-      "and cannot reach majority — it stalls in phase1.",
-  },
+  // {
+  //   name:  "message-loss",
+  //   label: "Message Loss",
+  //   title:
+  //     "2 of P1's 3 PREPAREs are pre-dropped. P1 only receives 1 PROMISE " +
+  //     "and cannot reach majority — it stalls in phase1.",
+  // },
 ];
 
 export function PresetControls() {
