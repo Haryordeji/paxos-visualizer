@@ -1,3 +1,16 @@
+**April 21**
+***Entry 10***
+
+Legibility pass for live demo projection (10–30 ft viewing distance).
+
+Changes:
+- `src/index.css` — Bumped all font sizes 15–25% (base 12→14px, header 15→18px, node IDs 13→16px, status badges 9→11px, event log 11→13px, buttons 12→14px, etc.). Increased `--text-dim` contrast (#606888→#8891b3) and `--gray` dropped-message color (#4a5180→#6a72a0). Boosted consensus-acceptors opacity 0.75→0.85.
+- `src/components/Canvas/SimulationCanvas.tsx` — Larger node-ID circles (r 15→18, stroke 1.5→2/2.5). Node label font 11→14px. Role sub-label 9→11px, opacity 0.55→0.75. Lane lines thicker (1→1.5px) and more opaque (0.28→0.38). Tick marks bolder (opacity 0.15→0.25, width 1→1.5).
+- `src/components/Canvas/useD3Animation.ts` — Arrow strokes +1px across the board (1.5→2.5, 2.5→3.5). Arrow label font 9→12px. Arrowhead markers 5→7. Dropped arrow color updated to match brighter `--gray`.
+- `src/components/Canvas/layout.ts` — HEADER_H 52→58, STEP_H 40→46 to accommodate larger elements.
+
+---
+
 **April 8**
 ***Entry 9***
 

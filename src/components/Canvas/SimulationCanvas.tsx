@@ -76,38 +76,38 @@ export function SimulationCanvas() {
           .attr("x1", x).attr("y1", HEADER_H)
           .attr("x2", x).attr("y2", height)
           .attr("stroke",           lineClr)
-          .attr("stroke-opacity",   crashed ? 0.55 : 0.28)
-          .attr("stroke-width",     crashed ? 1.5  : 1)
+          .attr("stroke-opacity",   crashed ? 0.65 : 0.38)
+          .attr("stroke-width",     crashed ? 2    : 1.5)
           .attr("stroke-dasharray", "5 5");
 
         // Node-ID badge (circle)
         lanesLayer.append("circle")
-          .attr("cx", x).attr("cy", 22)
-          .attr("r",  15)
+          .attr("cx", x).attr("cy", 24)
+          .attr("r",  18)
           .attr("fill",         crashed
-            ? "rgba(255,107,107,0.18)"
+            ? "rgba(255,107,107,0.22)"
             : "rgba(20,23,40,0.92)")
           .attr("stroke",       lineClr)
-          .attr("stroke-width", crashed ? 2 : 1.5);
+          .attr("stroke-width", crashed ? 2.5 : 2);
 
         // Node-ID label
         lanesLayer.append("text")
-          .attr("x", x).attr("y", 27)
+          .attr("x", x).attr("y", 29)
           .attr("text-anchor", "middle")
           .attr("font-family", "ui-monospace, 'Cascadia Code', Consolas, monospace")
-          .attr("font-size",   "11px")
+          .attr("font-size",   "14px")
           .attr("font-weight", "700")
           .attr("fill",        lineClr)
           .text(id);
 
         // Role sub-label
         lanesLayer.append("text")
-          .attr("x", x).attr("y", 43)
+          .attr("x", x).attr("y", 47)
           .attr("text-anchor", "middle")
           .attr("font-family", "ui-monospace, 'Cascadia Code', Consolas, monospace")
-          .attr("font-size",   "9px")
+          .attr("font-size",   "11px")
           .attr("fill",        lineClr)
-          .attr("opacity",     0.55)
+          .attr("opacity",     0.75)
           .text(crashed ? "crashed" : ROLE_LABEL[id as NodeId]);
 
         // Step tick marks along the lane (subtle horizontal notches)
@@ -119,8 +119,8 @@ export function SimulationCanvas() {
             .attr("x1", x - 3).attr("y1", ty)
             .attr("x2", x + 3).attr("y2", ty)
             .attr("stroke",         lineClr)
-            .attr("stroke-opacity", 0.15)
-            .attr("stroke-width",   1);
+            .attr("stroke-opacity", 0.25)
+            .attr("stroke-width",   1.5);
         }
       });
 

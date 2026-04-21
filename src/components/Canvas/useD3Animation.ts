@@ -15,7 +15,7 @@ const MARKER_DEFS: MarkerDef[] = [
   { id: "arrow-accept",   color: "#ff9f6b" },
   { id: "arrow-accepted", color: "#4fd6be" },
   { id: "arrow-nack",     color: "#ff6b6b" },
-  { id: "arrow-dropped",  color: "#4a5180" },
+  { id: "arrow-dropped",  color: "#6a72a0" },
 ];
 
 function markerId(msg: Message): string {
@@ -34,8 +34,8 @@ function ensureMarkers(svg: d3.Selection<SVGSVGElement, unknown, null, undefined
       .attr("viewBox",     "0 0 10 10")
       .attr("refX",        8)
       .attr("refY",        5)
-      .attr("markerWidth",  5)
-      .attr("markerHeight", 5)
+      .attr("markerWidth",  7)
+      .attr("markerHeight", 7)
       .attr("orient",      "auto")
       .append("path")
         .attr("d",    "M 0 1 L 9 5 L 0 9 Z")
@@ -77,14 +77,14 @@ type ArrowStyle = { color: string; strokeWidth: number; dasharray: string | null
 
 function arrowStyle(msg: Message): ArrowStyle {
   if (msg.status === "dropped") {
-    return { color: "#4a5180", strokeWidth: 1, dasharray: "3 3" };
+    return { color: "#6a72a0", strokeWidth: 1.5, dasharray: "3 3" };
   }
   switch (msg.type) {
-    case "prepare":  return { color: "#82aaff", strokeWidth: 1.5, dasharray: null };
-    case "promise":  return { color: "#c3e88d", strokeWidth: 1.5, dasharray: null };
-    case "accept":   return { color: "#ff9f6b", strokeWidth: 1.5, dasharray: null };
-    case "accepted": return { color: "#4fd6be", strokeWidth: 2.5, dasharray: null };
-    case "nack":     return { color: "#ff6b6b", strokeWidth: 1.5, dasharray: "5 3" };
+    case "prepare":  return { color: "#82aaff", strokeWidth: 2.5, dasharray: null };
+    case "promise":  return { color: "#c3e88d", strokeWidth: 2.5, dasharray: null };
+    case "accept":   return { color: "#ff9f6b", strokeWidth: 2.5, dasharray: null };
+    case "accepted": return { color: "#4fd6be", strokeWidth: 3.5, dasharray: null };
+    case "nack":     return { color: "#ff6b6b", strokeWidth: 2.5, dasharray: "5 3" };
   }
 }
 
@@ -142,14 +142,14 @@ function drawArrow(
   if (style.dasharray) line.attr("stroke-dasharray", style.dasharray);
 
   const labelX    = midX;
-  const labelY    = y - 7;
-  const textColor = isDropped ? "#4a5180" : style.color;
+  const labelY    = y - 9;
+  const textColor = isDropped ? "#6a72a0" : style.color;
 
   const text = g.append("text")
     .attr("x", labelX).attr("y", labelY)
     .attr("text-anchor",  "middle")
     .attr("font-family",  "ui-monospace, 'Cascadia Code', Consolas, monospace")
-    .attr("font-size",    "9px")
+    .attr("font-size",    "12px")
     .attr("fill",         textColor)
     .attr("opacity",      0)
     .text(label);
@@ -162,7 +162,7 @@ function drawArrow(
       line.attr("x2", midX);
       g.append("text")
         .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
-        .attr("text-anchor", "middle").attr("font-size", "13px")
+        .attr("text-anchor", "middle").attr("font-size", "15px")
         .attr("fill", "#ff6b6b").attr("opacity", 1);
       text.attr("opacity", 0.6);
       g.attr("opacity", 0.18);
@@ -186,7 +186,7 @@ function drawArrow(
       .on("end", () => {
         g.append("text")
           .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
-          .attr("text-anchor", "middle").attr("font-size", "13px")
+          .attr("text-anchor", "middle").attr("font-size", "15px")
           .attr("fill", "#ff6b6b").attr("opacity", 0)
           .transition().duration(120).attr("opacity", 1);
         text.transition().duration(100).attr("opacity", 0.6);

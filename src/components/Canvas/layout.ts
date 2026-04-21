@@ -8,10 +8,10 @@ export type NodeId = (typeof NODE_IDS)[number];
 export const PAD_X = 64;
 
 /** Vertical space at the top reserved for node-ID labels. */
-export const HEADER_H = 52;
+export const HEADER_H = 58;
 
 /** Vertical pixels allocated to each simulation step. */
-export const STEP_H = 40;
+export const STEP_H = 46;
 
 export const LANE_COLOR: Record<NodeId, string> = {
   P1: "#82aaff", // blue   – proposer
