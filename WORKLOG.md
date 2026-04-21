@@ -1,4 +1,20 @@
 **April 21**
+***Entry 11***
+
+Bug fix: crashed nodes could still send messages (promises, accepted, nacks) that were queued before the crash.
+
+Root cause: `step()` in `simulation.ts` only checked if the *recipient* was crashed, never the *sender*. Messages already in the queue from a node that subsequently crashed were delivered normally.
+
+Fix: Added a sender-crashed check in `step()` before the existing recipient-crashed check. Messages from crashed senders are now logged as dropped, same as messages to crashed recipients.
+
+Files modified:
+- `src/engine/simulation.ts` — added `sender.status === "crashed"` guard in `step()`
+
+65/65 tests pass, build clean.
+
+---
+
+**April 21**
 ***Entry 10***
 
 Legibility pass for live demo projection (10–30 ft viewing distance).

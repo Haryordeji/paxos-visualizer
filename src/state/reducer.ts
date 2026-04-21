@@ -33,7 +33,7 @@ export function initialAppState(): AppState {
   return {
     sim: initializeState(),
     autoPlay: false,
-    speedMs: 500,
+    speedMs: 250,
     resetKey: 0,
   };
 }

@@ -146,7 +146,19 @@ export function step(state: SimulationState): SimulationState {
     };
   }
 
+  const sender    = s.nodes[message.from];
   const recipient = s.nodes[message.to];
+
+  // Crashed sender — message cannot be delivered
+  if (sender.status === "crashed") {
+    return {
+      ...s,
+      deliveredMessages: [
+        ...s.deliveredMessages,
+        { ...message, status: "dropped" },
+      ],
+    };
+  }
 
   // Crashed recipient — message is lost
   if (recipient.status === "crashed") {
