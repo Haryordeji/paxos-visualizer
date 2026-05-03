@@ -165,14 +165,16 @@ describe("phase 1 majority", () => {
     expect(proposer(s, "P1").status).toBe("phase2");
   });
 
-  it("enqueues ACCEPT messages only to the acceptors that sent promises", () => {
+  it("enqueues ACCEPT messages to all acceptors", () => {
     let s = startProposal(initializeState(), "P1");
     // Run through Phase 1 completely
     for (let i = 0; i < 5; i++) s = step(s);
-    // After 5 steps, P1 is in phase2. Queue now has: [PROMISE#3, ACCEPT→A1, ACCEPT→A2]
+    // After 5 steps, P1 is in phase2. Queue now has: [PROMISE#3, ACCEPT→A1, ACCEPT→A2, ACCEPT→A3]
     const acceptMsgs = s.messageQueue.filter((m) => m.type === "accept");
-    expect(acceptMsgs).toHaveLength(2);
+    expect(acceptMsgs).toHaveLength(3);
     expect(acceptMsgs.every((m) => m.from === "P1")).toBe(true);
+    const destinations = acceptMsgs.map((m) => m.to).sort();
+    expect(destinations).toEqual(["A1", "A2", "A3"]);
   });
 
   it("stale PROMISE after phase2 transition is ignored", () => {
@@ -185,7 +187,7 @@ describe("phase 1 majority", () => {
     expect(proposer(s, "P1").acceptsReceived).toBe(acceptsReceivedBefore);
     // No extra ACCEPT messages should have been enqueued
     const acceptMsgs = s.messageQueue.filter((m) => m.type === "accept");
-    expect(acceptMsgs).toHaveLength(2);
+    expect(acceptMsgs).toHaveLength(3);
   });
 });
 

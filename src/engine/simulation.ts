@@ -239,12 +239,17 @@ export function step(state: SimulationState): SimulationState {
 
         updatedProposer = { ...updatedProposer, status: "phase2" };
 
-        for (const promise of newPromises) {
+        // Send ACCEPT to all acceptors, not just those that promised
+        const acceptorIds = Object.values(s.nodes)
+          .filter((n) => n.role === "acceptor")
+          .map((n) => n.id);
+
+        for (const acceptorId of acceptorIds) {
           newMessages.push({
             id: newId(),
             type: "accept",
             from: proposer.id,
-            to: promise.from,
+            to: acceptorId,
             proposalNumber: proposer.currentProposal,
             value: chosenValue,
             status: "queued",

@@ -1,4 +1,21 @@
 **April 21**
+***Entry 12***
+
+Bug fix: ACCEPT messages were only sent to the 2 acceptors that replied with PROMISE (the majority), not to all 3 acceptors.
+
+Root cause: The PROMISE handler in `step()` iterated over `newPromises` (the promises received so far) when enqueuing ACCEPTs, instead of iterating over all acceptors. In standard Paxos, Phase 2 sends ACCEPT to all acceptors.
+
+Fix: Changed the ACCEPT loop to enumerate all acceptor nodes instead of just the promisers.
+
+Files modified:
+- `src/engine/simulation.ts` — ACCEPT enqueue loop now sends to all acceptors
+- `src/engine/__tests__/simulation.test.ts` — updated 2 tests to expect 3 ACCEPTs instead of 2
+
+65/65 tests pass, build clean.
+
+---
+
+**April 21**
 ***Entry 11***
 
 Bug fix: crashed nodes could still send messages (promises, accepted, nacks) that were queued before the crash.
