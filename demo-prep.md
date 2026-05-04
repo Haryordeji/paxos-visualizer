@@ -148,8 +148,6 @@ Mounting tree: `src/main.tsx` → `src/components/App.tsx` → `SimProvider` →
 
 - [ ] **`src/assets/{hero.png, react.svg, vite.svg}`** — Only imported by the orphan `src/App.tsx`. Removable with it.
 
-- [ ] **`src/components/ControlBar/FaultControls.tsx`** — `export function FaultControls() { return null; }` with a comment saying it's a placeholder. Not imported anywhere. `ControlBar.tsx` does not render it.
-
 - [ ] **`isCrashedDest` branches in `useD3Animation.ts`** — Unreachable, see rough edges.
 
 - [ ] **`message-loss` case in `buildPreset`** — Reachable in code but not via UI, see rough edges.
