@@ -1,3 +1,22 @@
+**May 4**
+***Entry 13***
+
+Demo prep — Phase A (engine corrections from DEMO_PREP_SPEC.md).
+
+A1: Reverted Entry 12. ACCEPT messages are sent only to acceptors in `promisesReceived` for the current proposal, matching Lamport's primary algorithm description ("send accept request to each of those acceptors"). Removes the confusion in the Crash Recovery preset where P1 appeared to ACCEPT a crashed A3 it had never heard a PROMISE from.
+
+A2: `crashNode` now filters `messageQueue` entries where `from === crashedNodeId`. Messages targeting a crashed node are unchanged — they remain queued and are dropped on delivery, so the arrow still draws (visually shows we tried to reach a dead node). The sender-crash guard in `step()` (Entry 11) becomes defensive but is left in place.
+
+Files modified:
+- `src/engine/simulation.ts` — PROMISE handler enumerates `newPromises` instead of all acceptors when enqueuing ACCEPTs
+- `src/engine/faults.ts` — `crashNode` filters `messageQueue` by sender
+- `src/engine/__tests__/simulation.test.ts` — 2 tests now expect 2 ACCEPTs (to A1, A2) instead of 3
+- `src/engine/__tests__/faults.test.ts` — added 4 tests covering A2 acceptance criteria (mid-Phase-1 proposer crash, mid-Phase-2 proposer crash, acceptor crash with queued PROMISE, recipient-crash leaves queue intact)
+
+69/69 tests pass, build clean.
+
+---
+
 **April 21**
 ***Entry 12***
 

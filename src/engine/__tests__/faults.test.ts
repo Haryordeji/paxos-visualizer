@@ -94,6 +94,42 @@ describe("crashNode", () => {
     // A1 should not have updated highestPromised
     expect((s.nodes["A1"] as AcceptorState).highestPromised).toBeNull();
   });
+
+  it("removes unsent PREPAREs from a proposer crashed mid-Phase-1", () => {
+    let s = startProposal(initializeState(), "P1"); // queue has 3 PREPAREs from P1
+    s = crashNode(s, "P1");
+    expect(s.messageQueue.filter((m) => m.from === "P1")).toHaveLength(0);
+  });
+
+  it("removes unsent ACCEPTs from a proposer crashed mid-Phase-2", () => {
+    let s = startProposal(initializeState(), "P1");
+    // Step into phase2: 3 PREPAREs delivered, 2 PROMISEs delivered → ACCEPTs enqueued
+    for (let i = 0; i < 5; i++) s = step(s);
+    expect(proposer(s, "P1").status).toBe("phase2");
+    const acceptsBefore = s.messageQueue.filter(
+      (m) => m.type === "accept" && m.from === "P1"
+    );
+    expect(acceptsBefore.length).toBeGreaterThan(0);
+    s = crashNode(s, "P1");
+    expect(s.messageQueue.filter((m) => m.from === "P1")).toHaveLength(0);
+  });
+
+  it("removes queued PROMISEs/NACKs from a crashed acceptor", () => {
+    let s = startProposal(initializeState(), "P1");
+    // Deliver all 3 PREPAREs → 3 PROMISEs enqueued from A1, A2, A3
+    for (let i = 0; i < 3; i++) s = step(s);
+    expect(s.messageQueue.filter((m) => m.from === "A2")).toHaveLength(1);
+    s = crashNode(s, "A2");
+    expect(s.messageQueue.filter((m) => m.from === "A2")).toHaveLength(0);
+  });
+
+  it("leaves messages targeting the crashed node in the queue", () => {
+    let s = startProposal(initializeState(), "P1"); // 3 PREPAREs queued, all to acceptors
+    const toA1Before = s.messageQueue.filter((m) => m.to === "A1").length;
+    s = crashNode(s, "A1");
+    const toA1After = s.messageQueue.filter((m) => m.to === "A1").length;
+    expect(toA1After).toBe(toA1Before);
+  });
 });
 
 // ---------------------------------------------------------------------------

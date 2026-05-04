@@ -43,6 +43,7 @@ export function crashNode(
       ...state.nodes,
       [nodeId]: { ...node, status: "crashed" } as NodeState,
     },
+    messageQueue: state.messageQueue.filter((m) => m.from !== nodeId),
   };
 }
 

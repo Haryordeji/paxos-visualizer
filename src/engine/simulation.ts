@@ -239,17 +239,13 @@ export function step(state: SimulationState): SimulationState {
 
         updatedProposer = { ...updatedProposer, status: "phase2" };
 
-        // Send ACCEPT to all acceptors, not just those that promised
-        const acceptorIds = Object.values(s.nodes)
-          .filter((n) => n.role === "acceptor")
-          .map((n) => n.id);
-
-        for (const acceptorId of acceptorIds) {
+        // Per Lamport: send ACCEPT only to acceptors that promised.
+        for (const promise of newPromises) {
           newMessages.push({
             id: newId(),
             type: "accept",
             from: proposer.id,
-            to: acceptorId,
+            to: promise.from,
             proposalNumber: proposer.currentProposal,
             value: chosenValue,
             status: "queued",
