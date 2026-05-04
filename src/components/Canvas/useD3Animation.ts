@@ -159,7 +159,7 @@ function drawArrow(
   // ── Instant rendering (preset batch-draw) ────────────────────────────────
   if (instant) {
     if (isDropped) {
-      line.attr("x2", midX);
+      line.attr("x2", toX - (toX >= fromX ? 30 : -30));
       g.append("text")
         .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
         .attr("text-anchor", "middle").attr("font-size", "15px")
@@ -182,7 +182,7 @@ function drawArrow(
     line.transition()
       .duration(animDuration * 0.65)
       .ease(d3.easeLinear)
-      .attr("x2", midX)
+      .attr("x2", toX - (toX >= fromX ? 30 : -30))
       .on("end", () => {
         g.append("text")
           .attr("x", midX + (toX >= fromX ? 10 : -10)).attr("y", y + 4)
