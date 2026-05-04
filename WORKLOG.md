@@ -1,4 +1,24 @@
 **May 4**
+***Entry 16***
+
+Demo prep — Phase D polish (DEMO_PREP_SPEC.md).
+
+D1: Lightened the dropped-message color from `#6a72a0` (dark indigo-tinted gray) to `#aaaaaa` (mid neutral gray) so dropped arrows read more clearly against the near-black canvas (`--bg: #0d0f1a`). Updated in two places to keep them in sync:
+- CSS variable `--gray` in `src/index.css` — also used by `.event-dropped`, `.msg-dropped`, `.queue-dropped-tag` in the event log/queue panels, so those lighten too (consistent treatment per spec).
+- Inline color `#6a72a0` in `src/components/Canvas/useD3Animation.ts` — used by the `arrow-dropped` SVG marker definition and by `arrowStyle()` for the line stroke.
+
+D2: Bumped role sub-label Y from 47 to 61 (+14px) in `src/components/Canvas/SimulationCanvas.tsx` so there's more breathing room between the node-ID badge (cy=24, r=18, bottom edge at y=42) and the "proposer"/"acceptor" label. Note: the label baseline now sits at y=61, 3px below `HEADER_H=58` where the dashed lane line begins. Since both label and lane use the same `lineClr` and the lane is dashed/low-opacity, the visual overlap is minimal — flagging for visual confirmation.
+
+Files modified:
+- `src/index.css` — `--gray` variable
+- `src/components/Canvas/useD3Animation.ts` — two `#6a72a0` inline references
+- `src/components/Canvas/SimulationCanvas.tsx` — role label Y
+
+69/69 tests pass, build clean. Visual verification of the lane-line/label proximity still pending (dev server unavailable in this session).
+
+---
+
+**May 4**
 ***Entry 15***
 
 Demo prep — Phase C (canvas vertical scroll from DEMO_PREP_SPEC.md).

@@ -125,7 +125,7 @@ export function SimulationCanvas() {
 
         // Role sub-label
         lanesLayer.append("text")
-          .attr("x", x).attr("y", 47)
+          .attr("x", x).attr("y", 61)
           .attr("text-anchor", "middle")
           .attr("font-family", "ui-monospace, 'Cascadia Code', Consolas, monospace")
           .attr("font-size",   "11px")

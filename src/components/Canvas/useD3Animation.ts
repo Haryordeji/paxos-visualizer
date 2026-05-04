@@ -15,7 +15,7 @@ const MARKER_DEFS: MarkerDef[] = [
   { id: "arrow-accept",   color: "#ff9f6b" },
   { id: "arrow-accepted", color: "#4fd6be" },
   { id: "arrow-nack",     color: "#ff6b6b" },
-  { id: "arrow-dropped",  color: "#6a72a0" },
+  { id: "arrow-dropped",  color: "#aaaaaa" },
 ];
 
 function markerId(msg: Message): string {
@@ -62,7 +62,7 @@ type ArrowStyle = { color: string; strokeWidth: number; dasharray: string | null
 
 function arrowStyle(msg: Message): ArrowStyle {
   if (msg.status === "dropped") {
-    return { color: "#6a72a0", strokeWidth: 1.5, dasharray: "3 3" };
+    return { color: "#aaaaaa", strokeWidth: 1.5, dasharray: "3 3" };
   }
   switch (msg.type) {
     case "prepare":  return { color: "#82aaff", strokeWidth: 2.5, dasharray: null };
@@ -128,7 +128,7 @@ function drawArrow(
 
   const labelX    = midX;
   const labelY    = y - 9;
-  const textColor = isDropped ? "#6a72a0" : style.color;
+  const textColor = isDropped ? "#aaaaaa" : style.color;
 
   const text = g.append("text")
     .attr("x", labelX).attr("y", labelY)
