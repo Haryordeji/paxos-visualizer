@@ -1,4 +1,21 @@
 **May 4**
+***Entry 17***
+
+Demo prep — Phase E (event log tooltips from DEMO_PREP_SPEC.md).
+
+Step 1: Extracted the per-message plain-English explainer from `ProtocolExplainer.tsx` into an exported pure function `explainMessage(msg: Message, _state: SimulationState): string`. Renamed from the local `explain` and made position-independent — it describes what a message *means in protocol terms*, not "what just happened in the latest step." Safe to call for delivered, queued, or dropped messages. The component body now calls `explainMessage(last, state.sim)`. The `_state` prefix satisfies `noUnusedParameters: true` while preserving the spec-prescribed signature; the parameter is reserved for future explanations that need broader context.
+
+Step 2: In `EventLog.tsx`, imported `explainMessage` and attached it as the native `title` attribute on every event-log row — both `DeliveredEntry` and `QueuedEntry`. Both sub-components now take `sim: SimulationState` so the explanation is computed at render time. The previous queued-row tooltip ("Click to drop this message") is replaced by the protocol explanation per spec; click-to-drop is still discoverable via the `queue-title-hint` ("— click to drop") in the queue header and the `queue-drop-hint` (✗) at the right edge of each droppable row.
+
+Files modified:
+- `src/components/InfoPanel/ProtocolExplainer.tsx` — export `explainMessage`; component consumes it
+- `src/components/InfoPanel/EventLog.tsx` — import and attach as `title` on delivered + queued entries
+
+69/69 tests pass, build clean. Visual verification (hover behavior matching the protocol explainer panel) still pending — dev server unavailable in this session.
+
+---
+
+**May 4**
 ***Entry 16***
 
 Demo prep — Phase D polish (DEMO_PREP_SPEC.md).

@@ -1,12 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useSimulation } from "../../state/context.tsx";
-import type { Message } from "../../engine/types.ts";
+import type { Message, SimulationState } from "../../engine/types.ts";
 
 function pn(round: number, nodeId: string): string {
   return `(${round}, ${nodeId})`;
 }
 
-function explain(msg: Message): string {
+/**
+ * Plain-English description of what a message means in protocol terms.
+ * Position-independent: describes the message itself, not "what just happened."
+ * Safe to call for delivered, queued, or dropped messages.
+ */
+export function explainMessage(msg: Message, _state: SimulationState): string {
   const n = pn(msg.proposalNumber.round, msg.proposalNumber.nodeId);
 
   if (msg.status === "dropped") {
@@ -43,7 +48,7 @@ export function ProtocolExplainer() {
   const text = consensus.reached
     ? `Consensus reached on "${consensus.value}", accepted by ${consensus.acceptedBy.join(", ")}.`
     : last
-    ? explain(last)
+    ? explainMessage(last, state.sim)
     : 'Click "Start Proposal" on a proposer, then Step to advance.';
 
   const key = last ? last.id : "empty";

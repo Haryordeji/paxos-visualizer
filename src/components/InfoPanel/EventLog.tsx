@@ -1,5 +1,6 @@
 import { useSimulation } from "../../state/context.tsx";
-import type { Message } from "../../engine/types.ts";
+import type { Message, SimulationState } from "../../engine/types.ts";
+import { explainMessage } from "./ProtocolExplainer.tsx";
 
 function formatPN(round: number, nodeId: string): string {
   return `(${round},${nodeId})`;
@@ -23,10 +24,13 @@ function messageCssClass(msg: Message): string {
   return `msg-${msg.type}`;
 }
 
-function DeliveredEntry({ msg }: { msg: Message }) {
+function DeliveredEntry({ msg, sim }: { msg: Message; sim: SimulationState }) {
   const isDropped = msg.status === "dropped";
   return (
-    <div className={`event-entry ${isDropped ? "event-dropped" : "event-delivered"}`}>
+    <div
+      className={`event-entry ${isDropped ? "event-dropped" : "event-delivered"}`}
+      title={explainMessage(msg, sim)}
+    >
       <span className="event-icon">{isDropped ? "✗" : "✓"}</span>
       <div className="event-body">
         <span className="event-route">
@@ -42,9 +46,11 @@ function DeliveredEntry({ msg }: { msg: Message }) {
 
 function QueuedEntry({
   msg,
+  sim,
   onDrop,
 }: {
   msg: Message;
+  sim: SimulationState;
   onDrop: (id: string) => void;
 }) {
   const alreadyDropped = msg.status === "dropped";
@@ -54,7 +60,7 @@ function QueuedEntry({
     <div
       className={`queue-entry ${alreadyDropped ? "" : "queue-entry-droppable"}`}
       onClick={alreadyDropped ? undefined : () => onDrop(msg.id)}
-      title={alreadyDropped ? undefined : "Click to drop this message"}
+      title={explainMessage(msg, sim)}
     >
       <span className="queue-dot" />
       <span className={cssClass}>
@@ -88,7 +94,7 @@ export function EventLog() {
       )}
 
       {delivered.map((msg) => (
-        <DeliveredEntry key={msg.id} msg={msg} />
+        <DeliveredEntry key={msg.id} msg={msg} sim={state.sim} />
       ))}
 
       {messageQueue.length > 0 && (
@@ -98,7 +104,7 @@ export function EventLog() {
             <span className="queue-title-hint"> — click to drop</span>
           </div>
           {messageQueue.map((msg) => (
-            <QueuedEntry key={msg.id} msg={msg} onDrop={handleDrop} />
+            <QueuedEntry key={msg.id} msg={msg} sim={state.sim} onDrop={handleDrop} />
           ))}
         </div>
       )}
