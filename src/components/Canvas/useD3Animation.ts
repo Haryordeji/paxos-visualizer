@@ -43,31 +43,16 @@ function ensureMarkers(svg: d3.Selection<SVGSVGElement, unknown, null, undefined
   });
 }
 
-/** Ensure the clipping rect and arrows layer exist. Idempotent. */
+/** Ensure the arrows layer exists. Idempotent. */
 function ensureArrowsLayer(
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  svgHeight: number
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
 ): void {
-  let defs = svg.select<SVGDefsElement>("defs");
-  if (defs.empty()) defs = svg.insert("defs", ":first-child");
-
-  if (defs.select("#timeline-clip").empty()) {
-    defs.append("clipPath")
-      .attr("id", "timeline-clip")
-      .append("rect")
-        .attr("class", "clip-rect")
-        .attr("x", 0).attr("y", HEADER_H)
-        .attr("width", 10000).attr("height", svgHeight);
-  } else {
-    defs.select("#timeline-clip .clip-rect").attr("height", svgHeight);
-  }
-
   if (svg.select(".arrows-layer").empty()) {
     svg.append("g")
       .attr("class", "arrows-layer")
-      .attr("clip-path", "url(#timeline-clip)")
       .append("g")
-        .attr("class", "scroll-group");
+        .attr("class", "scroll-group")
+        .attr("transform", `translate(0, ${HEADER_H})`);
   }
 }
 
@@ -218,20 +203,6 @@ function drawArrow(
 
 // ─── Scroll-group position ────────────────────────────────────────────────────
 
-function updateScrollTransform(
-  scrollGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
-  totalMessages: number,
-  svgHeight: number
-): void {
-  const usableH    = svgHeight - HEADER_H;
-  const maxVisible = Math.max(1, Math.floor(usableH / STEP_H));
-  const overflow   = Math.max(0, totalMessages - maxVisible);
-
-  scrollGroup.attr("transform",
-    `translate(0, ${HEADER_H - overflow * STEP_H})`
-  );
-}
-
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useD3Animation(
@@ -253,40 +224,54 @@ export function useD3Animation(
     if (svgWidth === 0 || svgHeight === 0) return;
 
     ensureMarkers(svg);
-    ensureArrowsLayer(svg, svgHeight);
+    ensureArrowsLayer(svg);
 
     const scrollGroup = svg.select<SVGGElement>(".scroll-group");
     const { deliveredMessages, nodes } = state.sim;
     const animDuration = Math.max(150, state.speedMs * 0.55);
 
+    // Are we close enough to the bottom that the user is "watching the latest"?
+    // The SVG-sizing effect has already grown the SVG for the new arrow at this
+    // point, so this measures distance to the *new* bottom. With a single new
+    // arrow per tick (normal play) the user's tracked-bottom position lands
+    // exactly STEP_H from the new bottom, comfortably inside the 1.5*STEP_H
+    // threshold. If the user manually scrolled up to inspect, they fall outside
+    // and we leave them there.
+    const isResetCycle  = state.resetKey !== prevResetKeyRef.current;
+    const wasNearBottom =
+      cont.scrollTop + cont.clientHeight >= cont.scrollHeight - STEP_H * 1.5;
+
     // ── Detect RESET or LOAD_PRESET (resetKey changed) ────────────────────
-    if (state.resetKey !== prevResetKeyRef.current) {
+    if (isResetCycle) {
       scrollGroup.selectAll("*").remove();
-      scrollGroup.attr("transform", null);
       prevLenRef.current      = 0;
       prevResetKeyRef.current = state.resetKey;
       // Fall through to draw any pre-loaded messages below
     }
 
-    // ── Nothing new to draw ───────────────────────────────────────────────
-    const newCount = deliveredMessages.length - prevLenRef.current;
-    if (newCount <= 0) return;
-
-    // ── Draw all new arrows ───────────────────────────────────────────────
+    // ── Draw any new arrows ───────────────────────────────────────────────
     // When multiple arrive at once (preset batch), render them instantly;
     // when exactly one arrives (normal step), animate it.
-    for (let i = 0; i < newCount; i++) {
-      const msgIndex = prevLenRef.current + i;
-      const msg      = deliveredMessages[msgIndex];
-      const isCrashedDest =
-        msg.status === "dropped" &&
-        nodes[msg.to]?.status === "crashed";
-      const dur = newCount === 1 ? animDuration : 0;
-      drawArrow(scrollGroup, msg, msgIndex, svgWidth, isCrashedDest, dur);
+    const newCount = deliveredMessages.length - prevLenRef.current;
+    if (newCount > 0) {
+      for (let i = 0; i < newCount; i++) {
+        const msgIndex = prevLenRef.current + i;
+        const msg      = deliveredMessages[msgIndex];
+        const isCrashedDest =
+          msg.status === "dropped" &&
+          nodes[msg.to]?.status === "crashed";
+        const dur = newCount === 1 ? animDuration : 0;
+        drawArrow(scrollGroup, msg, msgIndex, svgWidth, isCrashedDest, dur);
+      }
+      prevLenRef.current = deliveredMessages.length;
     }
 
-    updateScrollTransform(scrollGroup, deliveredMessages.length, svgHeight);
-    prevLenRef.current = deliveredMessages.length;
+    // ── Native auto-scroll: jump to top on reset, follow if near bottom ───
+    if (isResetCycle) {
+      cont.scrollTop = 0;
+    } else if (newCount > 0 && wasNearBottom) {
+      cont.scrollTop = cont.scrollHeight - cont.clientHeight;
+    }
 
   }, [state.sim.deliveredMessages, state.sim.nodes, state.speedMs, state.resetKey, svgRef, containerRef]);
 }

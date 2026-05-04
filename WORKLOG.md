@@ -1,4 +1,35 @@
 **May 4**
+***Entry 15***
+
+Demo prep — Phase C (canvas vertical scroll from DEMO_PREP_SPEC.md).
+
+**Approach (a) chosen**: native `overflow-y: auto` on the container, SVG height grows with content, D3 scroll transform deleted. Approach (b) — keeping the D3 transform and layering native scroll — was rejected because the two scroll mechanisms would fight during auto-play.
+
+Three architectural changes:
+
+1. **Single source of truth for SVG height.** New helper `computeSvgHeight(containerH, deliveredCount) = max(containerH, HEADER_H + (deliveredCount + 2) * STEP_H)` in `layout.ts`. A new dedicated effect in `SimulationCanvas.tsx` (declared before the lanes effect) owns `svg.attr("width", w).attr("height", svgH)`. Lanes effect now *reads* height from `svg.attr("height")` instead of computing its own. This avoids a race where a crash mid-playback (which re-runs the lanes effect on `state.sim.nodes` change) would shrink the SVG back to container height even though arrows had grown beyond it.
+
+2. **D3 scroll transform deleted; clip-path deleted.** `updateScrollTransform` is gone. `.scroll-group` gets a static `translate(0, ${HEADER_H})` once at layer creation, never updated — arrows render at their natural absolute SVG Y. `#timeline-clip` clip-path removed: with native scroll, the container clips visually and the SVG never draws above y=0 or beyond declared height, so no clip-path is needed.
+
+3. **Native auto-scroll-to-latest with "follow if near bottom".** Standard chat-scroll UX: before drawing, capture `wasNearBottom = scrollTop + clientHeight >= scrollHeight - STEP_H * 1.5`. After drawing, jump scrollTop to the new bottom only if the user was already there. On `resetKey` change (RESET / LOAD_PRESET), force `scrollTop = 0` so each preset starts at the top. Threshold `STEP_H * 1.5` (≈70px) is wide enough that a user tracking the latest stays in auto-follow as new arrows arrive, but tight enough that a manual scroll up disengages auto-follow until the user scrolls back near the bottom.
+
+**Tradeoff accepted**: header (node ID badges + role labels) scrolls away with content. SVG `position: sticky` doesn't apply; a sticky header would need a structural split into two stacked elements. Lane X positions stay consistent across the full SVG, so the user keeps spatial context. Spec doesn't require sticky.
+
+CSS additions:
+- `.simulation-canvas`: `overflow-y: auto`, `overflow-x: hidden`, `overscroll-behavior: contain`, `min-height: 0` (the last is critical so `1fr` grid cell allows shrink and lets `overflow-y` engage).
+- `.simulation-canvas svg`: dropped `height: 100%`; height is now set imperatively.
+
+Files modified:
+- `src/components/Canvas/layout.ts` — added `computeSvgHeight`
+- `src/index.css` — `.simulation-canvas` and `svg` rules
+- `src/components/Canvas/SimulationCanvas.tsx` — new height effect, lanes effect reads from SVG attr, lanes deps include `deliveredMessages.length`
+- `src/components/Canvas/useD3Animation.ts` — deleted `updateScrollTransform`, deleted clip-path block, static `.scroll-group` transform, native auto-scroll added to main effect
+
+69/69 tests pass, build clean. **Visual verification deferred**: dev server launch was blocked in this session. Manual browser verification still needed against the 7-step verification list in `/Users/ayosanya/.claude/plans/smooth-meandering-dahl.md`.
+
+---
+
+**May 4**
 ***Entry 14***
 
 Demo prep — Phase B (preset rework from DEMO_PREP_SPEC.md).

@@ -5,7 +5,7 @@ import { useD3Animation } from "./useD3Animation.ts";
 import {
   NODE_IDS, HEADER_H,
   LANE_COLOR, ROLE_LABEL,
-  laneX,
+  laneX, computeSvgHeight,
 } from "./layout.ts";
 import type { NodeId } from "./layout.ts";
 
@@ -24,8 +24,33 @@ export function SimulationCanvas() {
   const svgRef       = useRef<SVGSVGElement>(null);
   const { state }    = useSimulation();
 
+  // ── SVG sizing effect ──────────────────────────────────────────────────────
+  // Single source of truth for SVG width and height. Width tracks the container;
+  // height grows with delivered-message count so the timeline can extend below
+  // the viewport, where native overflow-y on the container handles scroll.
+  useEffect(() => {
+    const container = containerRef.current;
+    const svgEl     = svgRef.current;
+    if (!container || !svgEl) return;
+
+    const svg = d3.select<SVGSVGElement, unknown>(svgEl);
+
+    function update() {
+      const { width, height } = container!.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      const svgH = computeSvgHeight(height, state.sim.deliveredMessages.length);
+      svg.attr("width", width).attr("height", svgH);
+    }
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [state.sim.deliveredMessages.length, state.resetKey]);
+
   // ── Lanes effect ───────────────────────────────────────────────────────────
-  // Redraws ONLY the .lanes-layer on container resize or node status change.
+  // Redraws ONLY the .lanes-layer on container resize, node status change, or
+  // when the SVG grows (so lane lines / crash overlays / ticks span the new height).
   useEffect(() => {
     const container = containerRef.current;
     const svgEl     = svgRef.current;
@@ -34,11 +59,9 @@ export function SimulationCanvas() {
     const svg = d3.select<SVGSVGElement, unknown>(svgEl);
 
     function draw() {
-      const { width, height } = container!.getBoundingClientRect();
+      const { width } = container!.getBoundingClientRect();
+      const height    = parseFloat(svg.attr("height") || "0");
       if (width === 0 || height === 0) return;
-
-      // Size the SVG to the container
-      svg.attr("width", width).attr("height", height);
 
       // Ensure the lanes layer exists (below the arrows layer)
       let lanesLayer = svg.select<SVGGElement>(".lanes-layer");
@@ -133,7 +156,7 @@ export function SimulationCanvas() {
     ro.observe(container);
     return () => ro.disconnect();
 
-  }, [state.sim.nodes]);   // redraw lanes when node status changes (crash/restart)
+  }, [state.sim.nodes, state.sim.deliveredMessages.length]);   // redraw lanes on crash/restart and when SVG grows
 
   // ── Message animation (Step 5) ─────────────────────────────────────────────
   useD3Animation(svgRef, containerRef);

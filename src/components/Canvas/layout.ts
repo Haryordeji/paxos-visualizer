@@ -32,3 +32,12 @@ export function laneX(nodeId: string, svgWidth: number): number {
   if (idx < 0) return 0;
   return PAD_X + (idx / (NODE_IDS.length - 1)) * (svgWidth - 2 * PAD_X);
 }
+
+/**
+ * Total SVG height that fits all delivered messages plus breathing room.
+ * Floored at containerH so a short timeline still fills the viewport.
+ */
+export function computeSvgHeight(containerH: number, deliveredCount: number): number {
+  const contentH = HEADER_H + (deliveredCount + 2) * STEP_H;
+  return Math.max(containerH, contentH);
+}
