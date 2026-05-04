@@ -226,6 +226,7 @@ function StartProposalButton({
     <button
       className="btn-start-proposal"
       disabled={!canStart}
+      title="Start a new proposal"
       onClick={() => dispatch({ type: "START_PROPOSAL", proposerId: nodeId })}
     >
       {inFlight ? "Proposing…" : "Start Proposal"}
