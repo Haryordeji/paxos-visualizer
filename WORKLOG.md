@@ -1,4 +1,28 @@
 **May 4**
+***Entry 14***
+
+Demo prep — Phase B (preset rework from DEMO_PREP_SPEC.md).
+
+B1: Rewrote `buildPreset` so each preset returns an initial state with scenario *setup* applied (crashed nodes, queued messages, pre-dropped messages) but **zero engine steps executed**. Previously presets ran multiple `step()` calls synchronously, so the user saw a board with arrows already drawn (rendered instantly because `useD3Animation` skips animation when `newCount > 1`). Now arrows animate from the very first delivery — the story of how state arose is preserved.
+
+Per-preset:
+- Happy Path: `startProposal(P1)`. Queue: 3 PREPAREs from P1.
+- Competing Proposals: `startProposal(P1)` then `introduceProposal(P2, "B")`. Queue: P1's 3 PREPAREs + P2's 3 PREPAREs. P2's higher round causes acceptors to repromise after their P1 promises, NACKing P1's later ACCEPTs.
+- Crash Recovery: `crashNode(A3)` first, then `startProposal(P1)`. Queue: 3 PREPAREs to A1/A2/A3 (the one to A3 drops on delivery because recipient is crashed). With A1 being implemented (ACCEPT only to promisers), P1 cleanly enqueues ACCEPTs to A1+A2 only.
+- Message Loss: `startProposal(P1)`, then `dropMessage` on the PREPARE to A2. **Semantic change**: previous preset dropped 2 PREPAREs to demonstrate "P1 stalls below majority"; spec now drops only 1 to demonstrate "Paxos tolerates a lost message — A1 + A3 still form majority, consensus reached." The PresetControls.tsx tooltip is now stale and should be rewritten in a follow-up to match.
+
+Refactored to a `PRESETS: Record<PresetName, Preset>` map keyed by preset name. Each entry holds `{ autoPlay: boolean; build: () => SimulationState }`. `buildPreset` is now a 3-line reader.
+
+B2: All four presets set `autoPlay: true` (Message Loss was previously `false`). The `LOAD_PRESET` reducer case unchanged — already pulls `autoPlay` from `buildPreset`'s return, which is now driven by the per-preset definition.
+
+Files modified:
+- `src/state/reducer.ts` — `Preset` type + `PRESETS` map + simplified `buildPreset`. No `step()` calls in any preset.
+
+69/69 tests pass, build clean. No reducer tests existed; engine primitives are exercised by the existing engine test suite.
+
+---
+
+**May 4**
 ***Entry 13***
 
 Demo prep — Phase A (engine corrections from DEMO_PREP_SPEC.md).

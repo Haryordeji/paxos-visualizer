@@ -39,50 +39,63 @@ export function initialAppState(): AppState {
 }
 
 // ─── Preset factory ───────────────────────────────────────────────────────────
+//
+// Each preset returns an initial SimulationState with the scenario *setup*
+// applied (crashed nodes, queued messages, pre-dropped messages) but with
+// zero engine steps executed. The user clicks Auto-play (or Step) to see
+// the scenario unfold from the very first message delivery.
 
-function buildPreset(preset: PresetName, speedMs: number, resetKey: number): AppState {
-  switch (preset) {
-    case "happy-path": {
+type Preset = {
+  autoPlay: boolean;
+  build:    () => SimulationState;
+};
+
+const PRESETS: Record<PresetName, Preset> = {
+  "happy-path": {
+    autoPlay: true,
+    build: () => startProposal(initializeState(), "P1"),
+  },
+
+  "competing-proposals": {
+    autoPlay: true,
+    build: () => {
       let sim = initializeState();
       sim = startProposal(sim, "P1");
-      return { sim, autoPlay: true, speedMs, resetKey };
-    }
-
-    case "competing-proposals": {
-      // P1 starts; deliver its 3 PREPAREs so PROMISEs are queued;
-      // then P2 introduces a competing proposal with a higher round.
-      let sim = initializeState();
-      sim = startProposal(sim, "P1");
-      sim = step(sim); sim = step(sim); sim = step(sim); // deliver 3 PREPAREs
       sim = introduceProposal(
         sim, "P2",
         (sim.nodes["P2"] as ProposerState).proposedValue
       );
-      return { sim, autoPlay: true, speedMs, resetKey };
-    }
+      return sim;
+    },
+  },
 
-    case "crash-recovery": {
-      // P1 starts; deliver 3 PREPAREs then 2 PROMISEs so P1 reaches majority
-      // and moves to phase2; then crash A3 before its ACCEPT arrives.
+  "crash-recovery": {
+    autoPlay: true,
+    build: () => {
+      let sim = initializeState();
+      sim = crashNode(sim, "A3");          // A3 down before any traffic
+      sim = startProposal(sim, "P1");      // PREPAREs to A1, A2, A3 queued
+      return sim;
+    },
+  },
+
+  "message-loss": {
+    autoPlay: true,
+    build: () => {
       let sim = initializeState();
       sim = startProposal(sim, "P1");
-      sim = step(sim); sim = step(sim); sim = step(sim); // deliver 3 PREPAREs → PROMISEs enqueued
-      sim = step(sim); sim = step(sim);                  // deliver 2 PROMISEs → P1 reaches phase2
-      sim = crashNode(sim, "A3");
-      return { sim, autoPlay: true, speedMs, resetKey };
-    }
+      const prepareToA2 = sim.messageQueue.find(
+        (m) => m.type === "prepare" && m.to === "A2"
+      )!;
+      sim = dropMessage(sim, prepareToA2.id);
+      return sim;
+    },
+  },
+};
 
-    case "message-loss": {
-      // P1 starts; drop 2 of 3 PREPAREs so P1 can only get ≤1 promise and stalls.
-      let sim = initializeState();
-      sim = startProposal(sim, "P1");
-      const toDrop = sim.messageQueue
-        .filter(m => m.type === "prepare")
-        .slice(1); // keep first PREPARE (P1→A1), drop the other two
-      for (const m of toDrop) sim = dropMessage(sim, m.id);
-      return { sim, autoPlay: false, speedMs, resetKey };
-    }
-  }
+function buildPreset(preset: PresetName, speedMs: number, resetKey: number): AppState {
+  const def = PRESETS[preset];
+  return { sim: def.build(), autoPlay: def.autoPlay, speedMs, resetKey };
 }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
