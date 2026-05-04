@@ -1,0 +1,10 @@
+{
+  "name": "Crash Recovery",
+  "description": "A3 is down before P1 starts. P1 still reaches majority via A1 + A2.",
+  "initial_state": {
+    "crashed": ["A3"]
+  },
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" }
+  ]
+}

@@ -2,6 +2,8 @@ import type { SimulationState, ProposerState } from "../engine/types.ts";
 import { initializeState, startProposal, step } from "../engine/simulation.ts";
 import { dropMessage, crashNode, restartNode, introduceProposal } from "../engine/faults.ts";
 import { checkInvariants } from "../engine/invariants.ts";
+import type { LoadedScript, ScriptLogEntry } from "../script/types.ts";
+import { runScriptTick } from "../script/runner.ts";
 
 export type PresetName =
   | "happy-path"
@@ -19,14 +21,20 @@ export type Action =
   | { type: "RESET" }
   | { type: "SET_SPEED"; ms: number }
   | { type: "TOGGLE_AUTOPLAY" }
-  | { type: "LOAD_PRESET"; preset: PresetName };
+  | { type: "LOAD_PRESET"; preset: PresetName }
+  | { type: "LOAD_SCRIPT"; script: LoadedScript; warnings: string[] }
+  | { type: "LOAD_SCRIPT_ERROR"; errors: string[] }
+  | { type: "CLEAR_SCRIPT" };
 
 export interface AppState {
   sim: SimulationState;
   autoPlay: boolean;
   speedMs: number;
-  /** Incremented on every RESET and LOAD_PRESET so D3 knows to clear the SVG. */
+  /** Incremented on every RESET, LOAD_PRESET, and LOAD_SCRIPT so D3 knows to clear the SVG. */
   resetKey: number;
+  script: LoadedScript | null;
+  scriptError: string[] | null;
+  scriptLog: ScriptLogEntry[];
 }
 
 export function initialAppState(): AppState {
@@ -35,15 +43,13 @@ export function initialAppState(): AppState {
     autoPlay: false,
     speedMs: 1250,
     resetKey: 0,
+    script: null,
+    scriptError: null,
+    scriptLog: [],
   };
 }
 
 // ─── Preset factory ───────────────────────────────────────────────────────────
-//
-// Each preset returns an initial SimulationState with the scenario *setup*
-// applied (crashed nodes, queued messages, pre-dropped messages) but with
-// zero engine steps executed. The user clicks Auto-play (or Step) to see
-// the scenario unfold from the very first message delivery.
 
 type Preset = {
   autoPlay: boolean;
@@ -73,8 +79,8 @@ const PRESETS: Record<PresetName, Preset> = {
     autoPlay: true,
     build: () => {
       let sim = initializeState();
-      sim = crashNode(sim, "A3");          // A3 down before any traffic
-      sim = startProposal(sim, "P1");      // PREPAREs to A1, A2, A3 queued
+      sim = crashNode(sim, "A3");
+      sim = startProposal(sim, "P1");
       return sim;
     },
   },
@@ -95,7 +101,52 @@ const PRESETS: Record<PresetName, Preset> = {
 
 function buildPreset(preset: PresetName, speedMs: number, resetKey: number): AppState {
   const def = PRESETS[preset];
-  return { sim: def.build(), autoPlay: def.autoPlay, speedMs, resetKey };
+  return {
+    sim: def.build(),
+    autoPlay: def.autoPlay,
+    speedMs,
+    resetKey,
+    script: null,
+    scriptError: null,
+    scriptLog: [],
+  };
+}
+
+// ─── Script-load helpers ─────────────────────────────────────────────────────
+
+function applyInitialState(
+  sim: SimulationState,
+  script: LoadedScript
+): SimulationState {
+  let s = sim;
+  for (const id of script.initial_state?.crashed ?? []) {
+    s = crashNode(s, id);
+  }
+  return s;
+}
+
+function buildLoadedScriptState(
+  script: LoadedScript,
+  warnings: string[],
+  speedMs: number,
+  resetKey: number
+): AppState {
+  const sim = applyInitialState(initializeState(), script);
+  const initialLog: ScriptLogEntry[] = warnings.map((warning) => ({
+    kind: "system",
+    firedAtStep: 0,
+    precedingDeliveredCount: 0,
+    warning,
+  }));
+  return runScriptTick({
+    sim,
+    autoPlay: false,
+    speedMs,
+    resetKey,
+    script: { ...script, nextEventIndex: 0 },
+    scriptError: null,
+    scriptLog: initialLog,
+  });
 }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -105,7 +156,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "STEP": {
       const sim = step(state.sim);
       checkInvariants(sim);
-      return { ...state, sim };
+      return runScriptTick({ ...state, sim });
     }
 
     case "START_PROPOSAL":
@@ -128,12 +179,26 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, sim: introduceProposal(state.sim, action.proposerId, value) };
     }
 
-    case "RESET":
+    case "RESET": {
+      if (state.script) {
+        // Rewind: re-apply initial_state, reset cursor, clear log.
+        const sim = applyInitialState(initializeState(), state.script);
+        return runScriptTick({
+          sim,
+          autoPlay: false,
+          speedMs: state.speedMs,
+          resetKey: state.resetKey + 1,
+          script: { ...state.script, nextEventIndex: 0 },
+          scriptError: null,
+          scriptLog: [],
+        });
+      }
       return {
         ...initialAppState(),
         speedMs:  state.speedMs,
         resetKey: state.resetKey + 1,
       };
+    }
 
     case "SET_SPEED":
       return { ...state, speedMs: action.ms };
@@ -143,5 +208,24 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case "LOAD_PRESET":
       return buildPreset(action.preset, state.speedMs, state.resetKey + 1);
+
+    case "LOAD_SCRIPT":
+      return buildLoadedScriptState(
+        action.script,
+        action.warnings,
+        state.speedMs,
+        state.resetKey + 1
+      );
+
+    case "LOAD_SCRIPT_ERROR":
+      return { ...state, scriptError: action.errors };
+
+    case "CLEAR_SCRIPT":
+      return {
+        ...state,
+        script: null,
+        scriptError: null,
+        scriptLog: [],
+      };
   }
 }

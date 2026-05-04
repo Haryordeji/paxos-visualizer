@@ -1,6 +1,8 @@
 import { useSimulation } from "../../state/context.tsx";
 import type { Message, SimulationState } from "../../engine/types.ts";
+import type { ScriptLogEntry } from "../../script/types.ts";
 import { explainMessage } from "./ProtocolExplainer.tsx";
+import { describeScriptEvent } from "../../script/runner.ts";
 
 function formatPN(round: number, nodeId: string): string {
   return `(${round},${nodeId})`;
@@ -44,6 +46,41 @@ function DeliveredEntry({ msg, sim }: { msg: Message; sim: SimulationState }) {
   );
 }
 
+function ScriptEntry({ entry }: { entry: ScriptLogEntry }) {
+  if (entry.kind === "system") {
+    return (
+      <div
+        className="event-entry event-script event-script-warning"
+        title={entry.warning}
+      >
+        <span className="event-icon">⚠</span>
+        <div className="event-body">
+          <span className="event-route">Script · step {entry.firedAtStep}</span>
+          <span className="event-label">{entry.warning}</span>
+        </div>
+      </div>
+    );
+  }
+  const isWarning = typeof entry.outcome === "object";
+  const description = describeScriptEvent(entry.event);
+  const detail =
+    typeof entry.outcome === "object" ? entry.outcome.warning : description;
+  return (
+    <div
+      className={`event-entry event-script ${isWarning ? "event-script-warning" : ""}`}
+      title={detail}
+    >
+      <span className="event-icon">{isWarning ? "⚠" : "▸"}</span>
+      <div className="event-body">
+        <span className="event-route">Script · step {entry.firedAtStep}</span>
+        <span className="event-label">
+          {isWarning ? detail : description}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function QueuedEntry({
   msg,
   sim,
@@ -75,11 +112,62 @@ function QueuedEntry({
   );
 }
 
+type LogItem =
+  | { kind: "msg"; msg: Message; key: string }
+  | { kind: "script"; entry: ScriptLogEntry; key: string };
+
+function buildInterleavedLog(
+  delivered: readonly Message[],
+  scriptLog: readonly ScriptLogEntry[]
+): LogItem[] {
+  const items: LogItem[] = [];
+  let scriptIdx = 0;
+  // Script entries with precedingDeliveredCount === 0 render at the top.
+  while (
+    scriptIdx < scriptLog.length &&
+    scriptLog[scriptIdx].precedingDeliveredCount === 0
+  ) {
+    items.push({
+      kind: "script",
+      entry: scriptLog[scriptIdx],
+      key: `s${scriptIdx}`,
+    });
+    scriptIdx++;
+  }
+  for (let i = 0; i < delivered.length; i++) {
+    const msg = delivered[i];
+    items.push({ kind: "msg", msg, key: msg.id });
+    while (
+      scriptIdx < scriptLog.length &&
+      scriptLog[scriptIdx].precedingDeliveredCount === i + 1
+    ) {
+      items.push({
+        kind: "script",
+        entry: scriptLog[scriptIdx],
+        key: `s${scriptIdx}`,
+      });
+      scriptIdx++;
+    }
+  }
+  // Any trailing script entries beyond the delivered count.
+  while (scriptIdx < scriptLog.length) {
+    items.push({
+      kind: "script",
+      entry: scriptLog[scriptIdx],
+      key: `s${scriptIdx}`,
+    });
+    scriptIdx++;
+  }
+  return items;
+}
+
 export function EventLog() {
   const { state, dispatch } = useSimulation();
   const { deliveredMessages, messageQueue } = state.sim;
+  const { scriptLog } = state;
 
-  const delivered = [...deliveredMessages].reverse();
+  const items = buildInterleavedLog(deliveredMessages, scriptLog);
+  const reversed = [...items].reverse();
 
   function handleDrop(messageId: string) {
     dispatch({ type: "DROP_MESSAGE", messageId });
@@ -89,13 +177,17 @@ export function EventLog() {
     <div className="event-log">
       <div className="event-log-title">Event Log</div>
 
-      {delivered.length === 0 && (
+      {reversed.length === 0 && (
         <div className="event-log-empty">No messages yet.</div>
       )}
 
-      {delivered.map((msg) => (
-        <DeliveredEntry key={msg.id} msg={msg} sim={state.sim} />
-      ))}
+      {reversed.map((item) =>
+        item.kind === "msg" ? (
+          <DeliveredEntry key={item.key} msg={item.msg} sim={state.sim} />
+        ) : (
+          <ScriptEntry key={item.key} entry={item.entry} />
+        )
+      )}
 
       {messageQueue.length > 0 && (
         <div className="queue-section">

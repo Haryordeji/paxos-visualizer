@@ -1,6 +1,7 @@
 import { useSimulation } from "../../state/context.tsx";
 import { useAutoPlay } from "../../hooks/useAutoPlay.ts";
 import { PresetControls } from "./PresetControls.tsx";
+import { ScriptControls } from "./ScriptControls.tsx";
 
 export function ControlBar() {
   const { state, dispatch } = useSimulation();
@@ -65,9 +66,11 @@ export function ControlBar() {
         </span>
       </div>
 
-      {/* Row 2: preset scenarios */}
+      {/* Row 2: preset scenarios + scripted scenarios */}
       <div className="control-row">
         <PresetControls />
+        <div className="control-divider" />
+        <ScriptControls />
       </div>
     </footer>
   );

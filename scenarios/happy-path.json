@@ -1,0 +1,7 @@
+{
+  "name": "Happy Path",
+  "description": "P1 proposes and reaches consensus with all 3 acceptors alive. No faults.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" }
+  ]
+}

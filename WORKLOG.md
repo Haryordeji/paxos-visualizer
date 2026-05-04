@@ -1,4 +1,34 @@
 **May 4**
+***Entry 18***
+
+Scripted scenarios — JSON-driven scenario playback per `scripted.md` plan.
+
+A user can now upload a JSON file describing a sequence of timed events; the simulation plays through them automatically when the user clicks Play. Schema and time semantics per `scripted.md`: four verbs (propose / crash / restart / drop), `at` is the engine step counter, multiple events at same `at` fire in file order, validation rejects malformed files at load time with bulleted errors.
+
+Files added:
+- `src/script/types.ts` — ScriptEvent, LoadedScript, ScriptLogEntry types
+- `src/script/validate.ts` — JSON parse + schema validation, returns ok/error result with warnings
+- `src/script/runner.ts` — `applyScriptEvent` and `runScriptTick` pure functions
+- `src/components/ScriptBanner.tsx` — banner above canvas (name/desc/errors)
+- `src/components/ControlBar/ScriptControls.tsx` — Load script button + hidden file input
+- `src/script/__tests__/{validate,runner,integration,scenarios}.test.ts` — 65 new tests
+- `scenarios/{happy-path,crash-recovery,competing-proposals,message-loss}.json` — four example scripts matching the existing presets
+- `scenarios/README.md` — schema docs, including explicit warning that `propose` mid-protocol resets the proposer
+
+Files modified:
+- `src/state/reducer.ts` — added `script`/`scriptError`/`scriptLog` AppState fields, three new actions (LOAD_SCRIPT, LOAD_SCRIPT_ERROR, CLEAR_SCRIPT), STEP/RESET/LOAD_PRESET updated to drive script tick / preserve / clear as specified
+- `src/components/App.tsx` — render ScriptBanner between Header and main
+- `src/components/ControlBar/ControlBar.tsx` — render ScriptControls in row 2
+- `src/components/InfoPanel/EventLog.tsx` — interleave script log entries with delivered messages
+- `src/index.css` — banner, script-controls, and script-event styling; root grid template gained an `auto` row for the banner
+
+Deviation from plan: dropped the planned `useScriptRunner` hook and `RUN_SCRIPT_TICK` action. Folded the script tick directly into the STEP / LOAD_SCRIPT / RESET reducer cases via the pure `runScriptTick` function. Reason: simpler architecture, fewer renders per step, and tests no longer need to manually intermix STEP and RUN_SCRIPT_TICK dispatches.
+
+134/134 tests pass, build clean. Browser-side manual playback NOT performed in this session — see hand-off summary.
+
+---
+
+**May 4**
 ***Entry 17***
 
 Demo prep — Phase E (event log tooltips from DEMO_PREP_SPEC.md).
