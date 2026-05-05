@@ -1,5 +1,5 @@
 {
-  "name": "Minority Crash (Fault Tolerance)",
+  "name": "Minority Crash",
   "description": "A3 is crashed before the run begins. The remaining 2 acceptors form a majority. P1 reaches consensus on \"A\" without A3 ever participating — one step shorter than the happy path because A3's stale PROMISE never appears.",
   "initial_state": {
     "crashed": ["A3"]

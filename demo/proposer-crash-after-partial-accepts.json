@@ -4,7 +4,7 @@
   "events": [
     { "at": 0, "do": "propose", "node": "P1" },
     { "at": 5, "do": "drop", "to": "A2", "type": "accept" },
-    { "at": 7, "do": "crash", "node": "P1" },
-    { "at": 8, "do": "propose", "node": "P2" }
+    { "at": 8, "do": "crash", "node": "P1" },
+    { "at": 9, "do": "propose", "node": "P2" }
   ]
 }

@@ -1,0 +1,9 @@
+{
+  "name": "Crash and Recovery Between Phases",
+  "description": "A1 is crashed mid-Phase-1 and restarted before Phase 2's ACCEPT arrives. The accept lands correctly because stable storage preserved A1's promise across the crash.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "crash", "node": "A1" },
+    { "at": 6, "do": "restart", "node": "A1" }
+  ]
+}
