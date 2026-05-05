@@ -1,0 +1,8 @@
+{
+  "name": "Competing Proposals",
+  "description": "P1 starts, then P2 introduces a higher-round proposal at step 4. P2 outbids P1; P1's ACCEPTs are NACKed; consensus settles on P2's value 'B'.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 6, "do": "propose", "node": "P2" }
+  ]
+}
