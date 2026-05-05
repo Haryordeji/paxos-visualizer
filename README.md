@@ -61,3 +61,4 @@ Load a `.json` script via **Load script…** to drive the simulation through a t
 Designed and built by Johnny Ramirez and Ayo Olusanya. COS 583. Spring 2026
 
 Acknowledgements: Claude Code was used for some implementation tasks after we worked through the design decisions ourselves.
+Also used the Claude Web App for coming up with interesting Paxos scenerios to test various invariants as seen under `scenarios/`
