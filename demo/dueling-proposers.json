@@ -1,0 +1,19 @@
+{
+  "name": "Dueling Proposers (Livelock)",
+  "description": "P1 and P2 alternate hitting Phase 2 while their ACCEPTs are dropped before delivery. Four interleaved cycles demonstrate the livelock pattern; once the script stops dropping, the engine resolves on its own. In a real system without a leader, the cycle could continue indefinitely.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "drop", "to": "A1", "type": "accept" },
+    { "at": 5, "do": "drop", "to": "A2", "type": "accept" },
+    { "at": 5, "do": "propose", "node": "P2" },
+    { "at": 13, "do": "drop", "to": "A1", "type": "accept" },
+    { "at": 13, "do": "drop", "to": "A2", "type": "accept" },
+    { "at": 13, "do": "propose", "node": "P1" },
+    { "at": 21, "do": "drop", "to": "A1", "type": "accept" },
+    { "at": 21, "do": "drop", "to": "A2", "type": "accept" },
+    { "at": 21, "do": "propose", "node": "P2" },
+    { "at": 29, "do": "drop", "to": "A1", "type": "accept" },
+    { "at": 29, "do": "drop", "to": "A2", "type": "accept" },
+    { "at": 29, "do": "propose", "node": "P1" }
+  ]
+}

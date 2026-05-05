@@ -1,0 +1,10 @@
+{
+  "name": "Proposer Crash After Partial Accepts",
+  "description": "P1 reaches Phase 2 with ACCEPTs queued to A1 and A2. The ACCEPT to A2 is dropped, then A1 receives and accepts. P1 crashes before the ACCEPTED response is delivered. P2 enters with a higher round and discovers A1's evidence — P2 is forced to adopt \"A\" even though only one acceptor knew.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "drop", "to": "A2", "type": "accept" },
+    { "at": 7, "do": "crash", "node": "P1" },
+    { "at": 8, "do": "propose", "node": "P2" }
+  ]
+}

@@ -75,10 +75,13 @@ export function checkInvariants(sim: SimulationState): void {
 
   // ── Invariant 5: a promise is honoured ───────────────────────────────────────
   // An acceptor that has promised proposal n may never accept a proposal < n.
+  // Enforced as a snapshot check: highestPromised >= acceptedProposal.number.
+  // (At accept time both are set equal; later PREPAREs may raise highestPromised
+  // above acceptedProposal, but never the other way around.)
   for (const acc of acceptors) {
     if (acc.highestPromised && acc.acceptedProposal) {
       assert(
-        isGreaterThanOrEqual(acc.acceptedProposal.number, acc.highestPromised),
+        isGreaterThanOrEqual(acc.highestPromised, acc.acceptedProposal.number),
         `Inv5: ${acc.id} has acceptedProposal ${JSON.stringify(acc.acceptedProposal.number)} ` +
         `but highestPromised is ${JSON.stringify(acc.highestPromised)} — promise violated`
       );

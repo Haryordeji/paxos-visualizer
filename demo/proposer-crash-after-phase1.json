@@ -1,0 +1,9 @@
+{
+  "name": "Proposer Crash After Phase 1 (Orphaned Proposal)",
+  "description": "P1 wins Phase 1 and queues ACCEPTs, then crashes before any ACCEPT is delivered. The engine wipes all of P1's outbound messages. P2 then runs cleanly with no accepted-value evidence in any PROMISE and reaches consensus on \"B\".",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "crash", "node": "P1" },
+    { "at": 6, "do": "propose", "node": "P2" }
+  ]
+}

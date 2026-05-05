@@ -1,0 +1,12 @@
+{
+  "name": "Minority Crash with Recovery",
+  "description": "A3 crashes; P1 reaches consensus on \"A\" via A1+A2. A3 then restarts and P2 starts a new round wanting \"B\". Because A1 and A2 already accepted \"A\", P2 is forced to adopt \"A\" by the value-selection rule.",
+  "initial_state": {
+    "crashed": ["A3"]
+  },
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 9, "do": "restart", "node": "A3" },
+    { "at": 9, "do": "propose", "node": "P2" }
+  ]
+}

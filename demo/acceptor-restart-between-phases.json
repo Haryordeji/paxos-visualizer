@@ -1,0 +1,9 @@
+{
+  "name": "Acceptor Restart Between Phases (Variant)",
+  "description": "Tighter demonstration of highestPromised preservation: A1 is crashed and restarted between Phase 1 and Phase 2. The pending ACCEPT still lands correctly because A1's promise survived the crash.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "crash", "node": "A1" },
+    { "at": 5, "do": "restart", "node": "A1" }
+  ]
+}
