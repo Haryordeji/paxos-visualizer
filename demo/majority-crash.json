@@ -1,0 +1,10 @@
+{
+  "name": "Majority Crash (Quorum Loss / System Halt)",
+  "description": "A2 and A3 are crashed before the run begins, leaving only A1 active. P1's PREPAREs to crashed acceptors are auto-dropped; only A1 promises. With 1 of 3 promises P1 cannot reach majority and stalls in phase1. A retry with a higher round number produces the same result.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 1, "do": "crash", "node": "A2" },
+    { "at": 1, "do": "crash", "node": "A3" },
+    { "at": 4, "do": "propose", "node": "P1" }
+  ]
+}

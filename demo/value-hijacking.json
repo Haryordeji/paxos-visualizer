@@ -1,0 +1,8 @@
+{
+  "name": "Value Hijacking (Proposer Safety)",
+  "description": "P1 reaches consensus on \"A\". P2 then starts a fresh proposal wanting \"B\", but every PROMISE response carries A1's or A2's previously-accepted \"A\". The value-selection rule forces P2 to adopt \"A\" — its NodeCard still shows value \"B\", but its ACCEPT messages carry \"A\".",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 10, "do": "propose", "node": "P2" }
+  ]
+}

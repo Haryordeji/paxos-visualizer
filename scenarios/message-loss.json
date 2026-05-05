@@ -1,0 +1,8 @@
+{
+  "name": "Message Loss",
+  "description": "P1's PREPARE to A2 is dropped immediately. P1 still reaches majority via A1 + A3.",
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 0, "do": "drop", "to": "A2", "type": "prepare" }
+  ]
+}
