@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# Paxos Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive web visualizer for the Paxos consensus protocol. Step through Prepare/Promise/Accept/Accepted phases across 2 proposers and 3 acceptors, drop messages, crash nodes, and watch consensus emerge.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React + TypeScript (Vite), D3 for SVG message animation, Framer Motion for UI.
 
-## React Compiler
+## Run
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `npm run dev` — dev server with HMR
+- `npm run build` — type-check + production build
+- `npm run test` — Vitest
+- `npm run lint` — ESLint
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Controls
+
+- **Step** — deliver one queued message. **Auto-play** runs steps on a timer; **Speed** sets the interval.
+- **Reset** — back to initial state.
+- Click a **node** to crash/restart it. Acceptor stable storage survives a crash.
+- Click a **queued message** (an arrow on the canvas) to drop it.
+- **Presets** — one-click scenarios: Happy Path, Competing Proposals, Crash Recovery, Message Loss.
+
+## Scripted scenarios (JSON)
+
+Load a `.json` script via **Load script…** to drive the simulation through a timed sequence of events.
+
+```jsonc
+{
+  "name": "demo",
+  "description": "shown in the banner",
+  "initial_state": { "crashed": ["A3"] },
+  "events": [
+    { "at": 0, "do": "propose", "node": "P1" },
+    { "at": 5, "do": "crash",   "node": "A2" },
+    { "at": 8, "do": "restart", "node": "A2" },
+    { "at": 9, "do": "drop",    "to": "A1", "type": "promise" }
+  ]
+}
 ```
+
+`at` is the engine's step counter. Verbs: `propose` (P1/P2), `crash`, `restart`, `drop` (matches next queued message by `to` / `from` / `type`). Scripts are validated at load — see `scenarios/README.md` for full schema, examples, and edge cases.
+
+## Layout
+
+- `src/engine/` — simulation engine
+- `src/components/` — React UI
+- `src/state/`, `src/hooks/` — app state and React glue
+- `scenarios/` — example JSON scripts
+- `spec.md` — protocol + implementation spec
+
+---
+
+Designed and built by Johnny Ramirez and Ayo Olusanya. COS 583. Spring 2026
+
+Acknowledgements: Claude Code was used for some implementation tasks after we worked through the design decisions ourselves.
